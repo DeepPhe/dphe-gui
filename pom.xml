@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.healthnlp</groupId>
+    <artifactId>deepphe-gui</artifactId>
+    <version>0.7.0</version>
+    <name>deepphe-gui</name>
+    <description>Cancer Deep Phenotype Extraction (DeepPhe) GUI module</description>
+    <packaging>jar</packaging>
+
+    <properties>
+        <deepphe.version>0.7.0</deepphe.version>
+        <deepphe.nlp.version>0.7.0</deepphe.nlp.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- DeepPhe NLP dependency - brings in transitive dependencies -->
+        <dependency>
+            <groupId>org.healthnlp</groupId>
+            <artifactId>deepphe-nlp</artifactId>
+            <version>${deepphe.nlp.version}</version>
+        </dependency>
+
+        <!-- cTAKES GUI components (for DisablerPane, LoggerPanel, IconLoader) -->
+        <dependency>
+            <groupId>org.apache.ctakes</groupId>
+            <artifactId>ctakes-gui</artifactId>
+            <version>5.1.0</version>
+        </dependency>
+
+        <!-- Log4j for logging (Logger class) -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-1.2-api</artifactId>
+            <version>2.23.1</version>
+        </dependency>
+
+        <!-- Note: javax.swing, java.awt, and java.io are part of the JDK, no dependency needed -->
+        <!-- Note: Neo4j dependencies should come transitively through deepphe-nlp -->
+
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>apache.snapshots</id>
+            <name>Apache Development Snapshot Repository</name>
+            <url>https://repository.apache.org/content/groups/snapshots/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <!-- Add this if dphe-nlp is published to GitHub packages -->
+        <repository>
+            <id>github</id>
+            <name>DeepPhe GitHub Packages</name>
+            <url>https://maven.pkg.github.com/DeepPhe/dphe-nlp2</url>
+        </repository>
+    </repositories>
+
+    <build>
+        <finalName>deepphe-gui</finalName>
+
+        <plugins>
+            <!-- Maven Compiler Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+
+            <!-- Maven Install Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>latest-install</id>
+                        <goals>
+                            <goal>install-file</goal>
+                        </goals>
+                        <phase>install</phase>
+                        <configuration>
+                            <file>${project.build.directory}/${project.build.finalName}.jar</file>
+                            <generatePom>false</generatePom>
+                            <pomFile>pom.xml</pomFile>
+                            <version>${deepphe.version}</version>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Optional: Maven Assembly Plugin for creating distributions -->
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>bundle-project-sources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/main/assembly/bin.xml</descriptor>
+                            </descriptors>
+                            <tarLongFileMode>gnu</tarLongFileMode>
+                            <finalName>deepphe-gui-${project.version}</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>DeepPhe-Robot</name>
+            <url>https://maven.pkg.github.com/DeepPhe/dphe-gui</url>
+        </repository>
+    </distributionManagement>
+
+</project>
