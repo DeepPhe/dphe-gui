@@ -5,10 +5,10 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.healthnlp</groupId>
-    <artifactId>deepphe-gui</artifactId>
+    <artifactId>deepphe-desktop</artifactId>
     <version>0.7.0</version>
-    <name>deepphe-gui</name>
-    <description>Cancer Deep Phenotype Extraction (DeepPhe) GUI module</description>
+    <name>deepphe-desktop</name>
+    <description>Cancer Deep Phenotype Extraction (DeepPhe) Desktop GUI</description>
     <packaging>jar</packaging>
 
     <properties>
@@ -17,15 +17,19 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-resources-plugin.version>3.3.1</maven-resources-plugin.version>
+        <maven-install-plugin.version>3.1.1</maven-install-plugin.version>
+        <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
     </properties>
 
     <dependencies>
         <!-- DeepPhe NLP dependency - brings in transitive dependencies -->
-        <dependency>
-            <groupId>org.healthnlp</groupId>
-            <artifactId>deepphe-nlp</artifactId>
-            <version>${deepphe.nlp.version}</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.healthnlp</groupId>-->
+<!--            <artifactId>deepphe-nlp</artifactId>-->
+<!--            <version>${deepphe.nlp.version}</version>-->
+<!--        </dependency>-->
 
         <!-- cTAKES GUI components (for DisablerPane, LoggerPanel, IconLoader) -->
         <dependency>
@@ -74,18 +78,60 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.1</version>
+                <version>${maven-compiler-plugin.version}</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
                 </configuration>
             </plugin>
-
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <!--	Copy resources that should be user-editable for testing without requiring recompiling.  -->
+                        <!--	This makes it much easier for developers to find resources. -->
+                        <!--	Permanent edits must still be made in src/main/resources -->
+                        <id>copy-user-resources</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources</directory>
+                                </resource>
+                            </resources>
+                            <outputDirectory>${project.basedir}/resources</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <!--	Copy config that should be user-editable for testing without requiring recompiling.  -->
+                        <!--	This makes it much easier for developers to find configuration files. -->
+                        <!--	Permanent edits must still be made in src/main/resources -->
+                        <id>copy-user-config</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <resources>
+                                <resource>
+                                    <directory>src/user/config</directory>
+                                </resource>
+                            </resources>
+                            <outputDirectory>${project.basedir}/config</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Maven Install Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
-                <version>2.4</version>
+                <version>${maven-install-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>latest-install</id>
@@ -106,7 +152,7 @@
             <!-- Optional: Maven Assembly Plugin for creating distributions -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.4</version>
+                <version>${maven-assembly-plugin.version}</version>
                 <executions>
                     <execution>
                         <id>bundle-project-sources</id>

@@ -1,25 +1,31 @@
 package org.healthnlp.deepphe.gui;
 
 import org.apache.ctakes.core.util.external.SystemUtil;
+import org.apache.ctakes.gui.component.FileTableCellEditor;
 import org.apache.ctakes.gui.component.LoggerPanel;
+import org.apache.ctakes.gui.component.SmoothTipTable;
+import org.apache.ctakes.gui.pipeline.PiperRunnerPanel;
+import org.apache.ctakes.gui.pipeline.bit.parameter.ParameterCellRenderer;
 import org.apache.ctakes.gui.util.IconLoader;
 import org.apache.log4j.Logger;
-import org.neo4j.kernel.impl.store.kvstore.RotationTimeoutException;
-import org.neo4j.kernel.lifecycle.LifecycleException;
+import org.apache.uima.fit.descriptor.ConfigurationParameter;
+import org.healthnlp.deepphe.util.ParameterHandler;
+//import org.neo4j.kernel.impl.store.kvstore.RotationTimeoutException;
+//import org.neo4j.kernel.lifecycle.LifecycleException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.EventListenerList;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -34,21 +40,27 @@ public class DesktopMainPanel extends JPanel {
     static private final Logger LOGGER = Logger.getLogger( "DeepPhe Desktop" );
 
     static private final String DPHE_NAME = "Patient Phenotype Summarizer";
+    static private final String DB_ELT_NAME = "Database Importer";
     static private final String VIZ_NAME = "DeepPhe Visualization Tool";
-    static private final String HELP_NAME = "DeepPhe Web Site (Help)";
-    static private final String NO_VALUE = "NO_PARAMETER_VALUE_PROVIDED";
+    static private final String WIKI_NAME = "DeepPhe Wiki (help)";
+    static private final String HELP_NAME = "DeepPhe Web Site";
     private static final String HTTPS_DEEPPHE_GITHUB_IO = "https://deepphe.github.io/";
+
     private final Map<String,String> _parameterMap = new HashMap<>();
     private String _parameterFile;
+
+
     private JButton _dpheButton;
     private JButton _vizButton;
     private JButton _helpButton;
-    private boolean _stop;
 
 
     DesktopMainPanel() {
         super( new BorderLayout() );
-        add( createToolBar(), BorderLayout.NORTH );
+        final JPanel subPanel = new JPanel( new BorderLayout() );
+        subPanel.add( createProjectPanel(), BorderLayout.NORTH );
+        subPanel.add( createToolBar(), BorderLayout.CENTER );
+        add( subPanel, BorderLayout.NORTH );
         add( createLogPanel(), BorderLayout.CENTER );
         SwingUtilities.invokeLater( new ButtonIconLoader() );
     }
@@ -59,83 +71,46 @@ public class DesktopMainPanel extends JPanel {
             return;
         }
         _parameterFile = args[ 0 ];
-        final File parmFile = new File( _parameterFile );
-        if ( !parmFile.canRead() ) {
-            LOGGER.error( "Cannot read parameter file." );
-            LOGGER.error( "Please exit the application and correct your parameter file: " + _parameterFile );
+        if ( !ParameterHandler.readMapFromFile( _parameterFile, _parameterMap ) ) {
+            LOGGER.error( "Cannot read the parameter file: " + _parameterFile);
+            LOGGER.error( "Please exit the application and correct your parameter file." );
             return;
         }
-        try ( BufferedReader reader = new BufferedReader( new FileReader( args[0] ) ) ) {
-            String line = "";
-            while ( line != null ) {
-                if ( line.isEmpty() || line.startsWith( "//" ) ) {
-                    line = reader.readLine();
-                    continue;
-                }
-                final int equals = line.indexOf( '=' );
-                if ( equals <= 0 ) {
-                    LOGGER.warn( "Invalid line: " + line );
-                    line = reader.readLine();
-                    continue;
-                }
-                _parameterMap.put( line.substring( 0, equals ).trim().toUpperCase(), line.substring( equals+1 ).trim() );
-                line = reader.readLine();
-            }
-        } catch ( IOException ioE ) {
-            LOGGER.error( ioE.getMessage() );
-            System.exit( -1 );
-        }
-        // Register Shutdown hooks first so that an exit by any subsequent bad parameter causes the server to stop.
-        registerShutdownHook( "Neo4j", getParameter( "StopNeo4j" ), getParameter( "Neo4jDir" ) );
-        if ( _stop ) {
+        final String stopViz
+              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "StopViz", "StopVis" );
+        if ( !ParameterHandler.isValueValid( stopViz ) ) {
             return;
         }
-        // We should do something with the summarizer.  If neo4j is stopped then a running summarizer will fail.
-//      registerShutdownHook( "DeepPhe Summarizer", getParameter( "StopSum", "StopSum" ),
-//                            getParameter( "SumDir", "SumDir" ) );
-//      if ( _stop ) {
-//         return;
-//      }
-        registerShutdownHook( "DeepPhe Viz", getParameter( "StopViz", "StopVis" ), getParameter( "VizDir", "VisDir" ) );
-        if ( _stop ) {
+        final String vizDir
+              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "VizDir", "VisDir" );
+        if ( !ParameterHandler.isValueValid( vizDir ) ) {
             return;
         }
-        startNeo4j( getParameter( "StartNeo4j" ), getParameter( "Neo4jDir" ) );
-        if ( _stop ) {
+        registerShutdownHook( "DeepPhe Viz", stopViz, vizDir );
+        final String startDphe
+              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "StartDphe", "StartDeepPhe" );
+        if ( !ParameterHandler.isValueValid( startDphe ) ) {
             return;
         }
-        _dpheButton.addActionListener( new StartAction( DPHE_NAME,
-                getParameter( "StartDphe", "StartDeepPhe" ),
-                getParameter( "DpheDir", "DeepPheDir" ) ) );
-        if ( _stop ) {
+        final String dpheDir
+              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "DpheDir", "DeepPheDir" );
+        if ( !ParameterHandler.isValueValid( dpheDir ) ) {
             return;
         }
-        _vizButton.addActionListener( new StartAction( VIZ_NAME,
-                getParameter( "StartViz", "StartVis" ),
-                getParameter( "VizDir", "VisDir" ) ) );
-        if ( _stop ) {
+        _dpheButton.addActionListener( new StartAction( DPHE_NAME, startDphe, dpheDir) );
+        final String startViz
+              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "StartViz", "StartVis" );
+        if ( !ParameterHandler.isValueValid( startViz ) ) {
             return;
         }
+        _vizButton.addActionListener( new StartAction( VIZ_NAME, startViz, vizDir) );
         _helpButton.addActionListener( new HelpAction() );
     }
 
-    private String getParameter( final String... names ) {
-        final String value = Arrays.stream( names )
-                .map( String::toUpperCase )
-                .map( _parameterMap::get )
-                .filter( Objects::nonNull ).findAny()
-                .orElse( NO_VALUE );
-        if ( value.equals( NO_VALUE ) ) {
-            LOGGER.error( "No Parameter Value specified for " + String.join( ", ", names ) );
-            LOGGER.error( "Please exit the application and correct your parameter file: " + _parameterFile );
-            _stop = true;
-        }
-        return value;
-    }
 
     static private void logBadArgs( final String... args ) {
-        if ( args.length > 1 ) {
-            LOGGER.error( "There are too many arguments in " + String.join( " ", args ) );
+        if ( args.length == 1 ) {
+            return;
         }
         LOGGER.error( "A single argument pointing to a File containing run parameters is required." );
         LOGGER.info( "" );
@@ -151,7 +126,12 @@ public class DesktopMainPanel extends JPanel {
         LOGGER.info( "VizDir or VisDir" );
         LOGGER.info( "StartViz or StartVis" );
         LOGGER.info( "" );
-        LOGGER.error( "Please restart the Application with a single argument pointing to a parameter file." );
+        LOGGER.error( "Please restart the Application with an argument pointing to a parameter file." );
+    }
+
+
+    private JComponent createProjectPanel() {
+        return new ProjectPanel();
     }
 
 
@@ -182,24 +162,6 @@ public class DesktopMainPanel extends JPanel {
         toolBar.add( button );
         toolBar.addSeparator( new Dimension( 10, 0 ) );
         return button;
-    }
-
-    private void startNeo4j( final String command, final String dir ) {
-        if ( _stop ) {
-            return;
-        }
-        final SystemUtil.CommandRunner runner = new SystemUtil.CommandRunner( command );
-        runner.setLogger( LOGGER );
-        if ( dir != null && !dir.isEmpty() ) {
-            runner.setDirectory( dir );
-        }
-        //runner.stopOnExit( true );
-        LOGGER.info( "Starting Neo4j Server  ..." );
-        try {
-            SystemUtil.run( runner );
-        } catch ( IOException ioE ) {
-            LOGGER.error( ioE.getMessage() );
-        }
     }
 
 
@@ -288,21 +250,24 @@ public class DesktopMainPanel extends JPanel {
                 } catch ( IOException ioE ) {
                     LOGGER.error( ioE.getMessage() );
                 }
-            } catch ( LifecycleException | RotationTimeoutException multE ) {
+//            } catch ( LifecycleException | RotationTimeoutException multE ) {
+            } catch ( Exception multE ) {
                 LOGGER.error( "Could not stop " + name + ".", multE );
             }
         } ) );
     }
 
+
     public void popHello() {
         JOptionPane.showMessageDialog( this,
                 "Welcome to the DeepPhe Desktop.\n"
-                        + "Use the buttons at the top to process data, display "
-                        + "results, or get help.\n"
-                        + "At this time the Neo4j Server is being started for "
-                        + "use by DeepPhe.\n"
-                        + "It will be ready when the log states:\n"
-                        + "... Remote interface available ...",
+                        + "Enter your project settings on the left, then "
+                        + "use the buttons above to process data, create a database, "
+                        + "display results, or get help.",
+//                        + "At this time the Neo4j Server is being started for "
+//                        + "use by DeepPhe.\n"
+//                        + "It will be ready when the log states:\n"
+//                        + "... Remote interface available ...",
                 "Welcome to DeepPhe Desktop",
                 INFORMATION_MESSAGE );
     }
@@ -311,7 +276,7 @@ public class DesktopMainPanel extends JPanel {
         final JPanel panel = new JPanel( new BorderLayout() );
         panel.setBorder( new EmptyBorder( 20, 5, 5, 5 ) );
         final JLabel label = new JLabel( "Desktop Activity Log:" );
-        label.setFont( new Font(Font.DIALOG, Font.PLAIN, 14 ) );
+        label.setFont( new Font(Font.DIALOG, Font.BOLD, 14 ) );
         label.setBorder( new EmptyBorder( 5, 20, 5, 5 ) );
         panel.add( label, BorderLayout.NORTH );
         panel.add( LoggerPanel.createLoggerPanel(), BorderLayout.CENTER );
