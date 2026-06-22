@@ -71,14 +71,14 @@ public class ProjectPanel extends JPanel {
    }
 
    private String getProjectName() {
-      return _projectMap.computeIfAbsent( "Project", k -> "ExampleProject" );
+      return _projectMap.computeIfAbsent( PROJECT, k -> EXAMPLE_PROJECT );
    }
 
    private void setProjectName( final String name ) {
       if ( !name.equals( getProjectName() ) ) {
          writeProjectFile();
       }
-      _projectMap.put( "Project", name );
+      _projectMap.put( PROJECT, name );
       _projectList.remove( name );
       _projectList.add( 0, name );
       _projectFileMap.computeIfAbsent( name, p -> PROJECTS_DIR + p + ".txt" );
@@ -303,7 +303,7 @@ public class ProjectPanel extends JPanel {
    }
 
    private void writeProjectList() {
-      LOGGER.info( "Writing Project List: " + _projectListPath + " ...");
+      LOGGER.info( "Writing project list to: " + _projectListPath + " ...");
       try ( Writer writer = new BufferedWriter( new FileWriter( _projectListPath ) ) ) {
          for ( String project : _projectList ) {
             final String projectFile = getProjectFile( project );
@@ -318,13 +318,13 @@ public class ProjectPanel extends JPanel {
    private void readProjectFile() {
       final String file = getProjectFile();
       if ( ParameterHandler.readMapFromFile( file, _projectMap ) ) {
-         LOGGER.info( "Loaded Project File: " + file );
+         LOGGER.info( "Loaded project parameters from: " + file );
       }
    }
 
    private void writeProjectFile() {
       final String file = getProjectFile();
-      LOGGER.info( "Writing Project File: " + file + " ...");
+      LOGGER.info( "Writing current project parameters to: " + file + " ...");
       try ( Writer writer = new BufferedWriter( new FileWriter( file ) ) ) {
          writer.write( "// Project file saved " + LocalDate.now() + "\n\n");
          writer.write( PROJECT + "=" + getProjectName() + "\n" );
