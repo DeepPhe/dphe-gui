@@ -1,28 +1,16 @@
 package org.healthnlp.deepphe.gui;
 
 import org.apache.ctakes.core.util.external.SystemUtil;
-import org.apache.ctakes.gui.component.FileTableCellEditor;
 import org.apache.ctakes.gui.component.LoggerPanel;
-import org.apache.ctakes.gui.component.SmoothTipTable;
-import org.apache.ctakes.gui.pipeline.PiperRunnerPanel;
-import org.apache.ctakes.gui.pipeline.bit.parameter.ParameterCellRenderer;
 import org.apache.ctakes.gui.util.IconLoader;
 import org.apache.log4j.Logger;
-import org.apache.uima.fit.descriptor.ConfigurationParameter;
 import org.healthnlp.deepphe.util.ParameterHandler;
-//import org.neo4j.kernel.impl.store.kvstore.RotationTimeoutException;
-//import org.neo4j.kernel.lifecycle.LifecycleException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.EventListenerList;
-import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
-import javax.swing.table.TableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -40,17 +28,16 @@ public class DesktopMainPanel extends JPanel {
     static private final Logger LOGGER = Logger.getLogger( "DeepPhe Desktop" );
 
     static private final String DPHE_NAME = "Patient Phenotype Summarizer";
-    static private final String DB_ELT_NAME = "Database Importer";
+    static private final String ETL_NAME = "Database Importer";
     static private final String VIZ_NAME = "DeepPhe Visualization Tool";
     static private final String WIKI_NAME = "DeepPhe Wiki (help)";
     static private final String HELP_NAME = "DeepPhe Web Site";
     private static final String HTTPS_DEEPPHE_GITHUB_IO = "https://deepphe.github.io/";
 
     private final Map<String,String> _parameterMap = new HashMap<>();
-    private String _parameterFile;
-
 
     private JButton _dpheButton;
+    private JButton _etlButton;
     private JButton _vizButton;
     private JButton _helpButton;
 
@@ -70,36 +57,48 @@ public class DesktopMainPanel extends JPanel {
             logBadArgs( args );
             return;
         }
-        _parameterFile = args[ 0 ];
-        if ( !ParameterHandler.readMapFromFile( _parameterFile, _parameterMap ) ) {
-            LOGGER.error( "Cannot read the parameter file: " + _parameterFile);
+       String parameterFile = args[ 0 ];
+        if ( !ParameterHandler.readMapFromFile( parameterFile, _parameterMap ) ) {
+           LOGGER.error( "Cannot read the parameter file: " + parameterFile );
             LOGGER.error( "Please exit the application and correct your parameter file." );
             return;
         }
         final String stopViz
-              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "StopViz", "StopVis" );
+              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StopViz", "StopVis" );
         if ( !ParameterHandler.isValueValid( stopViz ) ) {
             return;
         }
         final String vizDir
-              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "VizDir", "VisDir" );
+              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "VizDir", "VisDir" );
         if ( !ParameterHandler.isValueValid( vizDir ) ) {
             return;
         }
         registerShutdownHook( "DeepPhe Viz", stopViz, vizDir );
         final String startDphe
-              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "StartDphe", "StartDeepPhe" );
+              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StartDphe", "StartDeepPhe" );
         if ( !ParameterHandler.isValueValid( startDphe ) ) {
             return;
         }
         final String dpheDir
-              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "DpheDir", "DeepPheDir" );
+              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "DpheDir", "DeepPheDir" );
         if ( !ParameterHandler.isValueValid( dpheDir ) ) {
             return;
         }
         _dpheButton.addActionListener( new StartAction( DPHE_NAME, startDphe, dpheDir) );
+//        TODO - ETL Action
+//        final String startEtl
+//              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StartEtl", "StartDbLoad", "StartLoadDb" );
+//        if ( !ParameterHandler.isValueValid( startEtl ) ) {
+//            return;
+//        }
+//        final String etlDir
+//              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "EtlDir", "DbLoadDir", "LoadDbDir" );
+//        if ( !ParameterHandler.isValueValid( etlDir ) ) {
+//            return;
+//        }
+//        _etlButton.addActionListener( new StartAction( ETL_NAME, startEtl, etlDir) );
         final String startViz
-              = ParameterHandler.getAndCheckParameter( _parameterMap, _parameterFile, "StartViz", "StartVis" );
+              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StartViz", "StartVis" );
         if ( !ParameterHandler.isValueValid( startViz ) ) {
             return;
         }
@@ -141,6 +140,8 @@ public class DesktopMainPanel extends JPanel {
         toolBar.setRollover( true );
         toolBar.addSeparator( new Dimension( 50, 0 ) );
         _dpheButton = addButton( toolBar, DPHE_NAME );
+        toolBar.addSeparator( new Dimension( 100, 0 ) );
+        _etlButton = addButton( toolBar, ETL_NAME );
         toolBar.addSeparator( new Dimension( 100, 0 ) );
         _vizButton = addButton( toolBar, VIZ_NAME );
         toolBar.addSeparator( new Dimension( 100, 0 ) );
@@ -244,7 +245,7 @@ public class DesktopMainPanel extends JPanel {
                 if ( dir != null && !dir.isEmpty() ) {
                     runner.setDirectory( dir );
                 }
-                LOGGER.info( "Stopping " + name + " ..." );
+               LOGGER.info( "Stopping " + name + " ..." );
                 try {
                     SystemUtil.run( runner );
                 } catch ( IOException ioE ) {
@@ -261,8 +262,8 @@ public class DesktopMainPanel extends JPanel {
     public void popHello() {
         JOptionPane.showMessageDialog( this,
                 "Welcome to the DeepPhe Desktop.\n"
-                        + "Enter your project settings on the left, then "
-                        + "use the buttons above to process data, create a database, "
+                        + "Enter your project settings at the top, then "
+                        + "use the buttons in the center to process data, create a database, "
                         + "display results, or get help.",
 //                        + "At this time the Neo4j Server is being started for "
 //                        + "use by DeepPhe.\n"

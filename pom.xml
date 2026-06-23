@@ -13,7 +13,8 @@
 
     <properties>
         <deepphe.version>0.7.0</deepphe.version>
-        <deepphe.nlp.version>0.7.0</deepphe.nlp.version>
+        <!--  Until the next version of dphe uses java 17 we are stuck with ctakes version 5.1.0  -->
+        <ctakes.version>5.1.0</ctakes.version>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -24,29 +25,12 @@
     </properties>
 
     <dependencies>
-        <!-- DeepPhe NLP dependency - brings in transitive dependencies -->
-<!--        <dependency>-->
-<!--            <groupId>org.healthnlp</groupId>-->
-<!--            <artifactId>deepphe-nlp</artifactId>-->
-<!--            <version>${deepphe.nlp.version}</version>-->
-<!--        </dependency>-->
-
         <!-- cTAKES GUI components (for DisablerPane, LoggerPanel, IconLoader) -->
         <dependency>
             <groupId>org.apache.ctakes</groupId>
             <artifactId>ctakes-gui</artifactId>
-            <version>5.1.0</version>
+            <version>${ctakes.version}</version>
         </dependency>
-
-        <!-- Log4j for logging (Logger class) -->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-1.2-api</artifactId>
-            <version>2.23.1</version>
-        </dependency>
-
-        <!-- Note: javax.swing, java.awt, and java.io are part of the JDK, no dependency needed -->
-        <!-- Note: Neo4j dependencies should come transitively through deepphe-nlp -->
 
     </dependencies>
 
@@ -62,19 +46,12 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
-        <!-- Add this if dphe-nlp is published to GitHub packages -->
-        <repository>
-            <id>github</id>
-            <name>DeepPhe GitHub Packages</name>
-            <url>https://maven.pkg.github.com/DeepPhe/dphe-nlp2</url>
-        </repository>
     </repositories>
 
     <build>
-        <finalName>deepphe-gui</finalName>
+        <finalName>deepphe-desktop</finalName>
 
         <plugins>
-            <!-- Maven Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -90,10 +67,9 @@
                 <version>${maven-resources-plugin.version}</version>
                 <executions>
                     <execution>
-                        <!--	Copy resources that should be user-editable for testing without requiring recompiling.  -->
-                        <!--	This makes it much easier for developers to find resources. -->
-                        <!--	Permanent edits must still be made in src/main/resources -->
-                        <id>copy-user-resources</id>
+                        <!--	Copy resources that should not be user-editable for testing without recompiling.  -->
+                        <!--	Permanent edits must be made in src/main/resources -->
+                        <id>copy-main-resources</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -111,7 +87,7 @@
                         <!--	Copy config that should be user-editable for testing without requiring recompiling.  -->
                         <!--	This makes it much easier for developers to find configuration files. -->
                         <!--	Permanent edits must still be made in src/main/resources -->
-                        <id>copy-user-config</id>
+                        <id>copy-main-config</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -119,7 +95,7 @@
                         <configuration>
                             <resources>
                                 <resource>
-                                    <directory>src/user/config</directory>
+                                    <directory>src/main/config</directory>
                                 </resource>
                             </resources>
                             <outputDirectory>${project.basedir}/config</outputDirectory>
@@ -127,7 +103,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- Maven Install Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-install-plugin</artifactId>
@@ -148,8 +123,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <!-- Optional: Maven Assembly Plugin for creating distributions -->
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${maven-assembly-plugin.version}</version>

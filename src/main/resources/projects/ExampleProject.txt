@@ -1,7 +1,0 @@
-// DeepPhe Example Project
-
-Project=ExampleProject
-Pipeline=resources/pipeline/DeepPheDefault.piper
-InputDir=resources/examples/example_cohort
-OutputDir=example_output
-DBName=ExampleDB

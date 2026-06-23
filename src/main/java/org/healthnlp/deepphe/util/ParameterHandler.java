@@ -24,7 +24,14 @@ final public class ParameterHandler {
    static private final Logger LOGGER = Logger.getLogger( "ParameterHandler" );
 
 
-   static public boolean readMapFromFile( final String filepath, final Map<String,String> map ) {
+   static public boolean readMapFromFile( final String filepath,
+                                          final Map<String,String> map ) {
+      return readMapFromFile( filepath, map, true );
+   }
+
+   static public boolean readMapFromFile( final String filepath,
+                                          final Map<String,String> map,
+                                          final boolean toUpperCase ) {
       if ( !new File( filepath ).canRead() ) {
          return false;
       }
@@ -38,11 +45,12 @@ final public class ParameterHandler {
             }
             final String[] splits = StringUtil.fastSplit( line, '=' );
             if ( splits.length != 2 || splits[0].trim().isEmpty() || splits[1].trim().isEmpty() ) {
-               LOGGER.warn( "Invalid line: " + line );
+               LOGGER.warn( "Invalid map line: " + line );
                line = reader.readLine();
                continue;
             }
-            map.put( splits[0].trim().toUpperCase(), splits[1].trim() );
+            final String key = toUpperCase ? splits[0].trim().toUpperCase() : splits[0].trim();
+            map.put( key, splits[1].trim() );
             line = reader.readLine();
          }
       } catch ( IOException ioE ) {
@@ -66,7 +74,7 @@ final public class ParameterHandler {
             }
             final String[] splits = StringUtil.fastSplit( line, '=' );
             if ( splits.length != 2 || splits[0].trim().isEmpty() || splits[1].trim().isEmpty() ) {
-               LOGGER.warn( "Invalid line: " + line );
+               LOGGER.warn( "Invalid key line: " + line );
                line = reader.readLine();
                continue;
             }
@@ -79,8 +87,6 @@ final public class ParameterHandler {
       }
       return true;
    }
-
-
 
    static public String getParameter( final Map<String,String> map, final String... names ) {
       return Arrays.stream( names )
@@ -102,7 +108,7 @@ final public class ParameterHandler {
          return;
       }
       LOGGER.error( "No Parameter Value specified for: " + String.join( ", ", names ) );
-      LOGGER.error( "Please exit the application and correct your parameter file: " + parameterFile );
+      LOGGER.error( "Please exit the application and correct your parameter file " + parameterFile );
    }
 
    static public boolean isValueValid( final String value ) {

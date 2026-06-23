@@ -29,17 +29,24 @@ public class ProjectPanel extends JPanel {
 
    static private final String CWD = System.getProperty( "user.dir" );
 
+   static private final String DEFAULT_PIPER_FILE = CWD + "/resources/pipeline/DeepPheDefault.piper";
+   static private final String DEFAULT_TEXT_CORPUS = CWD + "/resources/examples/example_corpus";
+   static private final String DEFAULT_OMOP_DB = CWD + "/resources/examples/example_omop/fake.db";
+   static private final String DEFAULT_OUTPUT_DIR = CWD + "/resources/examples/example_output";
+
    static private final String EXAMPLE_PROJECT = "ExampleProject";
    static private final String PROJECTS_DIR = CWD + "/resources/projects/";
 
    static private final String PROJECT = "PROJECT";
-   static private final String PIPELINE = "PIPELINE";
-   static private final String INPUT_DIR = "INPUT_DIR";
+   static private final String PIPER_FILE = "PIPELINE";
+   static private final String TEXT_CORPUS = "TEXT_CORPUS";
+   static private final String OMOP_DB = "OMOP_DB";
    static private final String OUTPUT_DIR = "OUTPUT_DIR";
 
 
    static private final String PROJECT_NAME = "Project:";
-   static private final String[] ROW_NAMES = { " Pipeline", " Input Directory", " Output Directory" };
+   static private final String[] ROW_NAMES = { " Pipeline", " Corpus Directory",
+                                               " OMOP Database", " Output Directory" };
 
    static private final String _projectListPath = PROJECTS_DIR + "ProjectList.txt";
    private final ArrayList<String> _projectList = new ArrayList<>();
@@ -96,37 +103,50 @@ public class ProjectPanel extends JPanel {
 
 
    private String getPiperFile() {
-      return _projectMap.computeIfAbsent(PIPELINE, k -> CWD + "/resources/pipeline/DeepPheDefault.piper" );
+      return _projectMap.computeIfAbsent( PIPER_FILE, k -> DEFAULT_PIPER_FILE );
    }
 
    private void setPiperFile( final String path ) {
       if ( !path.toLowerCase().endsWith( ".piper" ) ) {
-         setPiperFile( getPiperFile() );
+         setPiperFile( DEFAULT_PIPER_FILE );
          return;
       }
       final File piper = new File( path );
-      if ( piper.canRead() ) {
-         _projectMap.put( PIPELINE, path );
+      if ( piper.isFile() && piper.canRead() ) {
+         _projectMap.put( PIPER_FILE, path );
       } else {
-         setPiperFile( getPiperFile() );
+         setPiperFile( DEFAULT_PIPER_FILE );
       }
    }
 
-   private String getInputDir() {
-      return _projectMap.computeIfAbsent(INPUT_DIR, k -> CWD + "/resources/examples/example_cohort" );
+   private String getTextCorpus() {
+      return _projectMap.computeIfAbsent( TEXT_CORPUS, k -> DEFAULT_TEXT_CORPUS );
    }
 
-   private void setInputDir( final String path ) {
+   private void setTextCorpus( final String path ) {
       final File dir = new File( path );
       if ( dir.isDirectory() ) {
-         _projectMap.put( INPUT_DIR, path );
+         _projectMap.put( TEXT_CORPUS, path );
       } else {
-         setInputDir( getInputDir() );
+         setTextCorpus( DEFAULT_TEXT_CORPUS);
+      }
+   }
+
+   private String getOmopDb() {
+      return _projectMap.computeIfAbsent( OMOP_DB, k -> DEFAULT_OMOP_DB );
+   }
+
+   private void setOmopDb( final String path ) {
+      final File dir = new File( path );
+      if ( dir.isFile() ) {
+         _projectMap.put( OMOP_DB, path );
+      } else {
+            setOmopDb( DEFAULT_OMOP_DB );
       }
    }
 
    private String getOutputDir() {
-      return _projectMap.computeIfAbsent(OUTPUT_DIR, k -> CWD + "/resources/examples/example_output"  );
+      return _projectMap.computeIfAbsent(OUTPUT_DIR, k -> DEFAULT_OUTPUT_DIR );
    }
 
    private void setOutputDir( final String path ) {
@@ -134,7 +154,7 @@ public class ProjectPanel extends JPanel {
       if ( dir.isDirectory() ) {
          _projectMap.put( OUTPUT_DIR, path );
       } else {
-         setOutputDir( getOutputDir() );
+         setOutputDir( DEFAULT_OUTPUT_DIR );
       }
    }
 
@@ -215,7 +235,7 @@ public class ProjectPanel extends JPanel {
       }
       @Override
       public int getRowCount() {
-         return 3;
+         return 4;
       }
       @Override
       public int getColumnCount() {
@@ -236,8 +256,9 @@ public class ProjectPanel extends JPanel {
          } else if ( column == 1 ) {
             switch ( row ) {
                case 0 : return getPiperFile();
-               case 1 : return getInputDir();
-               case 2 : return getOutputDir();
+               case 1 : return getTextCorpus();
+               case 2 : return getOmopDb();
+               case 3 : return getOutputDir();
             }
          } else if ( column == 2 ) {
             final String path = (String) getValueAt( row, 1 );
@@ -255,16 +276,18 @@ public class ProjectPanel extends JPanel {
             final String text = aValue.toString().trim();
             switch ( row ) {
                case 0 : setPiperFile( text );
-               case 1 : setInputDir( text );
-               case 2 : setOutputDir( text );
+               case 1 : setTextCorpus( text );
+               case 2 : setOmopDb( text );
+               case 3 : setOutputDir( text );
             }
             fireTableChanged( new TableModelEvent( this, row, row, column ) );
          } else if ( column == 2 && aValue instanceof File ) {
             final String filePath = ((File)aValue).getPath();
             switch ( row ) {
                case 0 : setPiperFile( filePath );
-               case 1 : setInputDir( filePath );
-               case 2 : setOutputDir( filePath );
+               case 1 : setTextCorpus( filePath );
+               case 2 : setOmopDb( filePath );
+               case 3 : setOutputDir( filePath );
             }
             fireTableChanged( new TableModelEvent( this, row, row, 1 ) );
          }
@@ -291,7 +314,7 @@ public class ProjectPanel extends JPanel {
    }
 
    private void readProjectList() {
-      boolean listOk = ParameterHandler.readMapFromFile( _projectListPath, _projectFileMap );
+      boolean listOk = ParameterHandler.readMapFromFile( _projectListPath, _projectFileMap, false );
       listOk = listOk && !_projectFileMap.isEmpty();
       if ( listOk ) {
          ParameterHandler.readKeysFromFile( _projectListPath, _projectList );
@@ -303,14 +326,14 @@ public class ProjectPanel extends JPanel {
    }
 
    private void writeProjectList() {
-      LOGGER.info( "Writing project list to: " + _projectListPath + " ...");
+      LOGGER.info( "Writing project list to " + _projectListPath + " ..." );
       try ( Writer writer = new BufferedWriter( new FileWriter( _projectListPath ) ) ) {
          for ( String project : _projectList ) {
             final String projectFile = getProjectFile( project );
             writer.write( project + "=" + projectFile + "\n" );
          }
       } catch ( IOException ioE ) {
-         LOGGER.error( "Could not write project list to: " + _projectListPath );
+         LOGGER.error( "Could not write project list to " + _projectListPath );
          LOGGER.error( ioE.getMessage() );
       }
    }
@@ -318,18 +341,19 @@ public class ProjectPanel extends JPanel {
    private void readProjectFile() {
       final String file = getProjectFile();
       if ( ParameterHandler.readMapFromFile( file, _projectMap ) ) {
-         LOGGER.info( "Loaded project parameters from: " + file );
+         LOGGER.info( "Loaded project parameters from " + file );
       }
    }
 
    private void writeProjectFile() {
       final String file = getProjectFile();
-      LOGGER.info( "Writing current project parameters to: " + file + " ...");
+      LOGGER.info( "Writing current project parameters to " + file + " ..." );
       try ( Writer writer = new BufferedWriter( new FileWriter( file ) ) ) {
          writer.write( "// Project file saved " + LocalDate.now() + "\n\n");
          writer.write( PROJECT + "=" + getProjectName() + "\n" );
-         writer.write( PIPELINE + "=" + getPiperFile() + "\n" );
-         writer.write( INPUT_DIR + "=" + getInputDir() + "\n" );
+         writer.write( PIPER_FILE + "=" + getPiperFile() + "\n" );
+         writer.write( TEXT_CORPUS + "=" + getTextCorpus() + "\n" );
+         writer.write( OMOP_DB + "=" + getOmopDb() + "\n" );
          writer.write( OUTPUT_DIR + "=" + getOutputDir() + "\n" );
       } catch ( IOException ioE ) {
          LOGGER.error( "Could not write " + file, ioE );
