@@ -6,13 +6,13 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.healthnlp</groupId>
     <artifactId>deepphe-desktop</artifactId>
-    <version>0.7.0</version>
+    <version>0.7.1</version>
     <name>deepphe-desktop</name>
     <description>Cancer Deep Phenotype Extraction (DeepPhe) Desktop GUI</description>
     <packaging>jar</packaging>
 
     <properties>
-        <deepphe.version>0.7.0</deepphe.version>
+        <deepphe.version>0.7.1</deepphe.version>
         <!--  Until the next version of dphe uses java 17 we are stuck with ctakes version 5.1.0  -->
         <ctakes.version>5.1.0</ctakes.version>
         <maven.compiler.source>1.8</maven.compiler.source>
