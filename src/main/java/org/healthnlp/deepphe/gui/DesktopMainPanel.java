@@ -17,6 +17,9 @@ import java.util.function.Supplier;
 
 import static javax.swing.JOptionPane.INFORMATION_MESSAGE;
 import static org.healthnlp.deepphe.gui.DesktopMainPanel.ButtonInfo.*;
+import static org.healthnlp.deepphe.gui.DpheDesktop.DPHE_SUBDIR;
+import static org.healthnlp.deepphe.gui.DpheDesktop.ETL_SUBDIR;
+import static org.healthnlp.deepphe.gui.DpheDesktop.VIZ_SUBDIR;
 
 /**
  * @author SPF , chip-nlp
@@ -27,11 +30,11 @@ public class DesktopMainPanel extends JPanel {
     static private final Logger LOGGER = Logger.getLogger( "DeepPhe Desktop" );
 
     enum ButtonInfo {
-        DPHE( "NLP Summarizer", ".DeepPhe", "bin/runDeepPheGui", "NLP_3_100.png",
+        DPHE( "NLP Summarizer", DPHE_SUBDIR, "bin/runDeepPheGui", "NLP_3_100.png",
               "Runs a text corpus through the DeepPhe phenotype summarizer pipeline." ),
-        ETL( "Data Merge Tool", ".DeepPhe-ETL", "start-etl", "ETL_3_100.png",
+        ETL( "Data Merge Tool", ETL_SUBDIR, "start-etl", "ETL_3_100.png",
               "Merges NLP summarizer output and an OMOP database into a database that the Viz tool can use." ),
-        VIZ( "Visualization GUI", ".DeepPhe-Viz", "start-viz", "Viz_4_100.png",
+        VIZ( "Visualization GUI", VIZ_SUBDIR, "start-viz", "Viz_4_100.png",
               "Displays information about the patient cohort, individual patients, and documents." ),
         WIKI( "Wiki", "Wiki_1_80.png" ,"Manuals for the DeepPhe tools." ),
         SITE( "Web Site", "Website_1_80.png", "The main DeepPhe web site." );
@@ -52,7 +55,7 @@ public class DesktopMainPanel extends JPanel {
             _tip = tip;
         }
         private String getDir() {
-            return System.getProperty( "user.dir" ) + "/" + _subDir;
+            return DpheDesktop.getRoot() + "/" + _subDir;
         }
         private String getIcon() {
             return "org/healthnlp/deepphe/desktop/icon/" + _icon;

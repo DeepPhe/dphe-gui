@@ -1,1 +1,0 @@
-University of Pittsburgh-pull schema of OMOP database for example patients.

@@ -5,6 +5,7 @@ import org.apache.log4j.Logger;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.File;
 
 /**
  * @author SPF , chip-nlp
@@ -13,6 +14,23 @@ import java.awt.*;
 public class DpheDesktop {
 
     static private final Logger LOGGER = Logger.getLogger( "DeepPheDesktop" );
+
+    static private final String CWD = System.getProperty( "user.dir" );
+    static private final String ROOT = System.getenv( "DEEPPHE_ROOT" );
+    static private final String ALT_ROOT = new File( CWD ).getParent();
+    static final String DPHE_SUBDIR = ".DeepPhe";
+    static final String ETL_SUBDIR = ".DeepPhe-ETL";
+    static final String VIZ_SUBDIR = ".DeepPhe-Viz";
+    static final String EXAMPLE_SUBDIR = "examples";
+
+
+    static String getRoot() {
+        if ( ROOT != null ) {
+            return ROOT;
+        }
+        return ALT_ROOT;
+    }
+
 
     static private JFrame createFrame() {
         final JFrame frame = new JFrame( "DeepPhe Desktop" );

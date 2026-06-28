@@ -27,6 +27,8 @@ import java.util.function.Supplier;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static javax.swing.JFileChooser.DIRECTORIES_ONLY;
+import static org.healthnlp.deepphe.gui.DpheDesktop.DPHE_SUBDIR;
+import static org.healthnlp.deepphe.gui.DpheDesktop.EXAMPLE_SUBDIR;
 import static org.healthnlp.deepphe.gui.ProjectPanel.ProjectParm.*;
 
 
@@ -37,26 +39,25 @@ import static org.healthnlp.deepphe.gui.ProjectPanel.ProjectParm.*;
 public class ProjectPanel extends JPanel {
 
    static private final Logger LOGGER = Logger.getLogger( "ProjectPanel" );
-   static private final String CWD = System.getProperty( "user.dir" );
 
    public enum ProjectParm {
-      PIPER_FILE( "/resources/pipeline/DeepPheDefault.piper" ),
-      TEXT_CORPUS( "/resources/examples/example_corpus" ),
-      OMOP_DB( "/resources/examples/example_omop/patient_demographics.json" ),
-      OUTPUT_DIR( "/resources/examples/example_output" );
+      PIPER_FILE( DPHE_SUBDIR + "/resources/pipeline/DeepPheDefault.piper" ),
+      TEXT_CORPUS( EXAMPLE_SUBDIR + "/example_corpus" ),
+      OMOP_DB( EXAMPLE_SUBDIR + "/example_omop/patient_demographics.json" ),
+      OUTPUT_DIR( EXAMPLE_SUBDIR + "/example_output" );
       private final String _defaultPath;
       ProjectParm( final String defaultPath ) {
          _defaultPath = defaultPath;
       }
       private String getDefaultPath() {
-         return CWD + _defaultPath;
+         return DpheDesktop.getRoot() + "/" + _defaultPath;
       }
    }
 
    static private final String PROJECT = "PROJECT";
    static private final String PROJECT_NAME = "Project:";
    static private final String EXAMPLE_PROJECT = "ExampleProject";
-   static private final String PROJECTS_DIR = CWD + "/resources/projects/";
+   static private final String PROJECTS_DIR = DpheDesktop.getRoot() + "/" + DPHE_SUBDIR + "/resources/projects/";
    static private final String _projectListPath = PROJECTS_DIR + "ProjectList.txt";
 
    private final ArrayList<String> _projectList = new ArrayList<>();
