@@ -53,6 +53,11 @@ public class DpheDesktop {
         DisablerPane.getInstance().initialize( frame );
         mainPanel.readParameterFile( args );
         mainPanel.popHello();
+        LOGGER.info( "Welcome to the DeepPhe Desktop.\n"
+              + "Enter your project settings at the top, then "
+              + "use the buttons in the center to process data, create a database, "
+              + "display results, or get help." );
+
     }
 
 }
