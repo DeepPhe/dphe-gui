@@ -4,7 +4,6 @@ import org.apache.ctakes.core.util.external.SystemUtil;
 import org.apache.ctakes.gui.component.LoggerPanel;
 import org.apache.ctakes.gui.util.IconLoader;
 import org.apache.log4j.Logger;
-import org.healthnlp.deepphe.util.ParameterHandler;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -12,8 +11,6 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -30,30 +27,42 @@ public class DesktopMainPanel extends JPanel {
     static private final Logger LOGGER = Logger.getLogger( "DeepPhe Desktop" );
 
     enum ButtonInfo {
-        DPHE( "NLP Summarizer", "NLP_3_100.png" ),
-        ETL( "Data Merge Tool", "ETL_3_100.png" ),
-        VIZ( "Visualization GUI", "Viz_4_100.png" ),
-        WIKI( "Wiki", "Wiki_1_80.png" ),
-        SITE( "Web Site", "Website_1_80.png" );
+        DPHE( "NLP Summarizer", ".DeepPhe", "bin/runDeepPheGui", "NLP_3_100.png",
+              "Runs a text corpus through the DeepPhe phenotype summarizer pipeline." ),
+        ETL( "Data Merge Tool", ".DeepPhe-ETL", "start-etl", "ETL_3_100.png",
+              "Merges NLP summarizer output and an OMOP database into a database that the Viz tool can use." ),
+        VIZ( "Visualization GUI", ".DeepPhe-Viz", "start-viz", "Viz_4_100.png",
+              "Displays information about the patient cohort, individual patients, and documents." ),
+        WIKI( "Wiki", "Wiki_1_80.png" ,"Manuals for the DeepPhe tools." ),
+        SITE( "Web Site", "Website_1_80.png", "The main DeepPhe web site." );
         private final String _name;
+        private final String _subDir;
+        private final String _command;
         private final String _icon;
-        ButtonInfo( final String name, final String icon ) {
-            _name = name;
-            _icon = icon;
+        private final String _tip;
+        ButtonInfo( final String name, final String icon, final String tip ) {
+            this( name, null, null, icon, tip );
         }
-        private String getName() {
-            return _name;
+        ButtonInfo( final String name, final String subDir, final String command,
+                    final String icon, final String tip ) {
+            _name = name;
+            _subDir = subDir;
+            _command = command;
+            _icon = icon;
+            _tip = tip;
+        }
+        private String getDir() {
+            return System.getProperty( "user.dir" ) + "/" + _subDir;
         }
         private String getIcon() {
             return "org/healthnlp/deepphe/desktop/icon/" + _icon;
         }
     }
 
-
     private static final String HTTPS_DEEPPHE_NLP_WIKI = "https://deepphe.github.io/";
     private static final String HTTPS_DEEPPHE_GITHUB_IO = "https://deepphe.github.io/";
 
-    private final Map<String,String> _parameterMap = new HashMap<>();
+//    private final Map<String,String> _parameterMap = new HashMap<>();
 
     private final ProjectPanel _projectPanel;
     private JButton _dpheButton;
@@ -61,7 +70,6 @@ public class DesktopMainPanel extends JPanel {
     private JButton _vizButton;
     private JButton _wikiButton;
     private JButton _siteButton;
-
 
 
     DesktopMainPanel() {
@@ -76,134 +84,160 @@ public class DesktopMainPanel extends JPanel {
     }
 
     public void readParameterFile( final String... args ) {
-        if ( args.length != 1 ) {
-            logBadArgs( args );
-            return;
-        }
-       String parameterFile = args[ 0 ];
-        if ( !ParameterHandler.readMapFromFile( parameterFile, _parameterMap ) ) {
-            LOGGER.error( "Cannot read the parameter file: " + parameterFile );
-            LOGGER.error( "Please exit the application and correct your parameter file." );
-            return;
-        }
-        final String stopViz
-              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StopViz", "StopVis" );
-        if ( !ParameterHandler.isValueValid( stopViz ) ) {
-            return;
-        }
-        final String vizDir
-              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "VizDir", "VisDir" );
-        if ( !ParameterHandler.isValueValid( vizDir ) ) {
-            return;
-        }
-        registerShutdownHook( "DeepPhe Viz", stopViz, vizDir );
-        final String startDphe
-              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StartDphe", "StartDeepPhe" );
-        if ( !ParameterHandler.isValueValid( startDphe ) ) {
-            return;
-        }
-        final String dpheDir
-              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "DpheDir", "DeepPheDir" );
-        if ( !ParameterHandler.isValueValid( dpheDir ) ) {
-            return;
-        }
-        _dpheButton.addActionListener( new StartAction( DPHE, startDphe, dpheDir, _projectPanel::getPiperGuiParms ) );
-//        TODO - ETL Action
-        final String startEtl
-              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StartEtl", "StartDbLoad", "StartLoadDb" );
-        if ( !ParameterHandler.isValueValid( startEtl ) ) {
-            return;
-        }
-        final String etlDir
-              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "EtlDir", "DbLoadDir", "LoadDbDir" );
-        if ( !ParameterHandler.isValueValid( etlDir ) ) {
-            return;
-        }
-        _etlButton.addActionListener( new StartAction( ETL, startEtl, etlDir, _projectPanel::getEtlParms ) );
-        final String startViz
-              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StartViz", "StartVis" );
-        if ( !ParameterHandler.isValueValid( startViz ) ) {
-            return;
-        }
-        _vizButton.addActionListener( new StartAction( VIZ, startViz, vizDir, _projectPanel::getVizParms ) );
+//        if ( args.length != 1 ) {
+//            logBadArgs( args );
+//            return;
+//        }
+//       String parameterFile = args[ 0 ];
+//        if ( !ParameterHandler.readMapFromFile( parameterFile, _parameterMap ) ) {
+//            LOGGER.error( "Cannot read the parameter file: " + parameterFile );
+//            LOGGER.error( "Please exit the application and correct your parameter file." );
+//            return;
+//        }
+//        final String stopViz
+//              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StopViz", "StopVis" );
+//        if ( !ParameterHandler.isValueValid( stopViz ) ) {
+//            return;
+//        }
+//        final String vizDir
+//              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "VizDir", "VisDir" );
+//        if ( !ParameterHandler.isValueValid( vizDir ) ) {
+//            return;
+//        }
+//        registerShutdownHook( "DeepPhe Viz", stopViz, vizDir );
+//        registerShutdownHook( "DeepPhe Viz", stopViz, VIZ.getDir() );
+//        final String startDphe
+//              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StartDphe", "StartDeepPhe" );
+//        if ( !ParameterHandler.isValueValid( startDphe ) ) {
+//            return;
+//        }
+//        final String dpheDir
+//              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "DpheDir", "DeepPheDir" );
+//        if ( !ParameterHandler.isValueValid( dpheDir ) ) {
+//            return;
+//        }
+        _dpheButton.addActionListener( new StartAction( DPHE, _projectPanel::getPiperGuiParms ) );
+//        final String startEtl
+//              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StartEtl", "StartDbLoad", "StartLoadDb" );
+//        if ( !ParameterHandler.isValueValid( startEtl ) ) {
+//            return;
+//        }
+//        final String etlDir
+//              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "EtlDir", "DbLoadDir", "LoadDbDir" );
+//        if ( !ParameterHandler.isValueValid( etlDir ) ) {
+//            return;
+//        }
+        _etlButton.addActionListener( new StartAction( ETL, _projectPanel::getEtlParms ) );
+//        final String startViz
+//              = ParameterHandler.getAndCheckParameter( _parameterMap, parameterFile, "StartViz", "StartVis" );
+//        if ( !ParameterHandler.isValueValid( startViz ) ) {
+//            return;
+//        }
+        _vizButton.addActionListener( new StartAction( VIZ, _projectPanel::getVizParms ) );
         _wikiButton.addActionListener( new WebAction( HTTPS_DEEPPHE_NLP_WIKI ) );
         _siteButton.addActionListener( new WebAction( HTTPS_DEEPPHE_GITHUB_IO ) );
     }
 
-
-    static private void logBadArgs( final String... args ) {
-        if ( args.length == 1 ) {
-            return;
-        }
-        LOGGER.error( "A single argument pointing to a File containing run parameters is required." );
-        LOGGER.info( "" );
-        LOGGER.info( "Each line in the file should have the format:" );
-        LOGGER.info( "Name=Value" );
-        LOGGER.info( "" );
-        LOGGER.info( "The required values are:" );
-        LOGGER.info( "StartNeo4j" );
-        LOGGER.info( "Neo4jDir" );
-        LOGGER.info( "StopNeo4j" );
-        LOGGER.info( "DpheDir or DeepPheDir" );
-        LOGGER.info( "StartDphe or StartDeepPhe" );
-        LOGGER.info( "VizDir or VisDir" );
-        LOGGER.info( "StartViz or StartVis" );
-        LOGGER.info( "" );
-        LOGGER.error( "Please restart the Application with an argument pointing to a parameter file." );
-    }
-
+//    static private void logBadArgs( final String... args ) {
+//        if ( args.length == 1 ) {
+//            return;
+//        }
+//        LOGGER.error( "A single argument pointing to a File containing run parameters is required." );
+//        LOGGER.info( "" );
+//        LOGGER.info( "Each line in the file should have the format:" );
+//        LOGGER.info( "Name=Value" );
+//        LOGGER.info( "" );
+//        LOGGER.info( "The required values are:" );
+//        LOGGER.info( "StartNeo4j" );
+//        LOGGER.info( "Neo4jDir" );
+//        LOGGER.info( "StopNeo4j" );
+//        LOGGER.info( "DpheDir or DeepPheDir" );
+//        LOGGER.info( "StartDphe or StartDeepPhe" );
+//        LOGGER.info( "VizDir or VisDir" );
+//        LOGGER.info( "StartViz or StartVis" );
+//        LOGGER.info( "" );
+//        LOGGER.error( "Please restart the Application with an argument pointing to a parameter file." );
+//    }
 
     private ProjectPanel createProjectPanel() {
         return new ProjectPanel();
     }
 
-
     private JToolBar createToolBar() {
         final JToolBar toolBar = new JToolBar();
         toolBar.setFloatable( false );
         toolBar.setRollover( true );
-        toolBar.addSeparator( new Dimension( 50, 0 ) );
-        _dpheButton = addButton( toolBar, DPHE );
-        toolBar.addSeparator( new Dimension( 50, 0 ) );
-        _etlButton = addButton( toolBar, ETL );
-        toolBar.addSeparator( new Dimension( 50, 0 ) );
-        _vizButton = addButton( toolBar, VIZ );
-        toolBar.addSeparator( new Dimension( 50, 0 ) );
+        _dpheButton = addButton( toolBar, DPHE, 60, 30 );
+        _etlButton = addButton( toolBar, ETL, 30, 30 );
+        _vizButton = addButton( toolBar, VIZ, 30, 60 );
         toolBar.add( new JSeparator( SwingConstants.VERTICAL ) );
-        _wikiButton = addButton( toolBar, WIKI );
-        toolBar.addSeparator( new Dimension( 10, 0 ) );
-        _siteButton = addButton( toolBar, SITE );
-        toolBar.addSeparator( new Dimension( 50, 0 ) );
+        _wikiButton = addButton( toolBar, WIKI, 60, 10 );
+        _siteButton = addButton( toolBar, SITE, 10, 60 );
         return toolBar;
     }
 
-    static private JButton addButton( final JToolBar toolBar, final ButtonInfo buttonInfo ) {
+    static private JButton addButton( final JToolBar toolBar, final ButtonInfo buttonInfo,
+                                      final int lpad, final int rpad ) {
+        toolBar.addSeparator( new Dimension( lpad, 0 ) );
         final JButton button = new JButton();
         button.setFocusPainted( false );
         // prevents first button from having a painted border
         button.setFocusable( false );
-        button.setToolTipText( buttonInfo.getName() );
+        button.setToolTipText( buttonInfo._tip );
         button.setHorizontalTextPosition( SwingConstants.CENTER );
         button.setVerticalTextPosition( SwingConstants.BOTTOM );
         button.setFont( new Font(Font.SANS_SERIF, Font.BOLD, 16 ) );
-        button.setText( buttonInfo.getName() );
+        button.setText( buttonInfo._name );
         toolBar.add( button );
-        toolBar.addSeparator( new Dimension( 10, 0 ) );
+        toolBar.addSeparator( new Dimension( rpad, 0 ) );
         return button;
     }
 
 
+//    private final class StartAction implements ActionListener {
+//        private final String _name;
+//        private final String _command;
+//        private final String _dir;
+//        private final Supplier<String> _parmFx;
+//        private boolean _paused = false;
+//
+//        private StartAction( final ButtonInfo buttonInfo, final String command, final String dir, final Supplier<String> parmFx ) {
+//            _name = buttonInfo.getName();
+//            _command = command;
+//            _dir = dir;
+//            _parmFx = parmFx;
+//        }
+//
+//        @Override
+//        synchronized public void actionPerformed( final ActionEvent event ) {
+//            if ( _dpheButton == null || _paused ) {
+//                return;
+//            }
+//            _paused = true;
+//            final SystemUtil.CommandRunner runner = new SystemUtil.CommandRunner( _command + " " + _parmFx.get() );
+//            runner.setLogger( LOGGER );
+//            if ( _dir != null && !_dir.isEmpty() ) {
+//                runner.setDirectory( _dir );
+//            }
+//            LOGGER.info( "Starting " + _name + " ..." );
+//            LOGGER.info( "\n     Initializing may require several seconds.\n     Please Wait.\n" );
+//            try {
+//                SystemUtil.run( runner );
+//            } catch ( IOException ioE ) {
+//                LOGGER.error( ioE.getMessage() );
+//            }
+//            Executors.newSingleThreadScheduledExecutor()
+//                    .schedule( () -> { _paused = false; }, 10, TimeUnit.SECONDS );
+//        }
+//    }
+
     private final class StartAction implements ActionListener {
-        private final String _name;
-        private final String _command;
-        private final String _dir;
+        private ButtonInfo _buttonInfo;
         private final Supplier<String> _parmFx;
         private boolean _paused = false;
 
-        private StartAction( final ButtonInfo buttonInfo, final String command, final String dir, final Supplier<String> parmFx ) {
-            _name = buttonInfo.getName();
-            _command = command;
-            _dir = dir;
+        private StartAction( final ButtonInfo buttonInfo, final Supplier<String> parmFx ) {
+            _buttonInfo = buttonInfo;
             _parmFx = parmFx;
         }
 
@@ -213,12 +247,14 @@ public class DesktopMainPanel extends JPanel {
                 return;
             }
             _paused = true;
-            final SystemUtil.CommandRunner runner = new SystemUtil.CommandRunner( _command + " " + _parmFx.get() );
-            runner.setLogger( LOGGER );
-            if ( _dir != null && !_dir.isEmpty() ) {
-                runner.setDirectory( _dir );
-            }
-            LOGGER.info( "Starting " + _name + " ..." );
+            final String logFile = _projectPanel.getParmPath( ProjectPanel.ProjectParm.OUTPUT_DIR )
+                  + "/" + _projectPanel.getProjectName() + _buttonInfo._subDir + ".log";
+            final String command = _buttonInfo.getDir() + "/" + _buttonInfo._command + " " + _parmFx.get();
+            final SystemUtil.CommandRunner runner = new SystemUtil.CommandRunner( command );
+            runner.setDirectory( _buttonInfo.getDir() );
+            runner.setLogFiles( logFile );
+            LOGGER.info( "Starting " + _buttonInfo._name + " ..." );
+            LOGGER.info( command );
             LOGGER.info( "\n     Initializing may require several seconds.\n     Please Wait.\n" );
             try {
                 SystemUtil.run( runner );
@@ -226,7 +262,7 @@ public class DesktopMainPanel extends JPanel {
                 LOGGER.error( ioE.getMessage() );
             }
             Executors.newSingleThreadScheduledExecutor()
-                    .schedule( () -> { _paused = false; }, 10, TimeUnit.SECONDS );
+                     .schedule( () -> { _paused = false; }, 10, TimeUnit.SECONDS );
         }
     }
 
@@ -237,14 +273,10 @@ public class DesktopMainPanel extends JPanel {
         }
         @Override
         public void actionPerformed( final ActionEvent event ) {
-//            if ( _siteButton == null ) {
-//                return;
-//            }
             LOGGER.info( "Opening " + _site + " ..." );
             SystemUtil.openWebPage( _site );
         }
     }
-
 
     /**
      * Simple Runnable that loads icons
@@ -266,32 +298,29 @@ public class DesktopMainPanel extends JPanel {
         }
     }
 
-
-    /**
-     * Registers a shutdown hook for the Neo4j instance so that it shuts down nicely when the VM exits.
-     * This includes kill signals and user actions like "Ctrl-C".
-     */
-    private void registerShutdownHook( final String name, final String command, final String dir ) {
-        Runtime.getRuntime().addShutdownHook( new Thread( () -> {
-            try {
-                final SystemUtil.CommandRunner runner = new SystemUtil.CommandRunner( command );
-                runner.setLogger( LOGGER );
-                if ( dir != null && !dir.isEmpty() ) {
-                    runner.setDirectory( dir );
-                }
-               LOGGER.info( "Stopping " + name + " ..." );
-                try {
-                    SystemUtil.run( runner );
-                } catch ( IOException ioE ) {
-                    LOGGER.error( ioE.getMessage() );
-                }
-//            } catch ( LifecycleException | RotationTimeoutException multE ) {
-            } catch ( Exception multE ) {
-                LOGGER.error( "Could not stop " + name + ".", multE );
-            }
-        } ) );
-    }
-
+//    /**
+//     * Registers a shutdown hook for the Neo4j instance so that it shuts down nicely when the VM exits.
+//     * This includes kill signals and user actions like "Ctrl-C".
+//     */
+//    private void registerShutdownHook( final String name, final String command, final String dir ) {
+//        Runtime.getRuntime().addShutdownHook( new Thread( () -> {
+//            try {
+//                final SystemUtil.CommandRunner runner = new SystemUtil.CommandRunner( command );
+//                runner.setLogger( LOGGER );
+//                if ( dir != null && !dir.isEmpty() ) {
+//                    runner.setDirectory( dir );
+//                }
+//               LOGGER.info( "Stopping " + name + " ..." );
+//                try {
+//                    SystemUtil.run( runner );
+//                } catch ( IOException ioE ) {
+//                    LOGGER.error( ioE.getMessage() );
+//                }
+//            } catch ( Exception ioE ) {
+//                LOGGER.error( "Could not stop " + name + ".", ioE );
+//            }
+//        } ) );
+//    }
 
     public void popHello() {
         JOptionPane.showMessageDialog( this,
@@ -299,10 +328,6 @@ public class DesktopMainPanel extends JPanel {
                         + "Enter your project settings at the top, then "
                         + "use the buttons in the center to process data, create a database, "
                         + "display results, or get help.",
-//                        + "At this time the Neo4j Server is being started for "
-//                        + "use by DeepPhe.\n"
-//                        + "It will be ready when the log states:\n"
-//                        + "... Remote interface available ...",
                 "Welcome to DeepPhe Desktop",
                 INFORMATION_MESSAGE );
     }

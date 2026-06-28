@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 
 import static javax.swing.JFileChooser.FILES_ONLY;
 import static javax.swing.JFileChooser.DIRECTORIES_ONLY;
+import static org.healthnlp.deepphe.gui.ProjectPanel.ProjectParm.*;
 
 
 /**
@@ -36,36 +37,35 @@ import static javax.swing.JFileChooser.DIRECTORIES_ONLY;
 public class ProjectPanel extends JPanel {
 
    static private final Logger LOGGER = Logger.getLogger( "ProjectPanel" );
-
    static private final String CWD = System.getProperty( "user.dir" );
 
-   static private final String DEFAULT_PIPER_FILE = CWD + "/resources/pipeline/DeepPheDefault.piper";
-   static private final String DEFAULT_TEXT_CORPUS = CWD + "/resources/examples/example_corpus";
-   static private final String DEFAULT_OMOP_DB = CWD + "/resources/examples/example_omop/patient_demographics.json";
-   static private final String DEFAULT_OUTPUT_DIR = CWD + "/resources/examples/example_output";
-
-   static private final String EXAMPLE_PROJECT = "ExampleProject";
-   static private final String PROJECTS_DIR = CWD + "/resources/projects/";
+   public enum ProjectParm {
+      PIPER_FILE( "/resources/pipeline/DeepPheDefault.piper" ),
+      TEXT_CORPUS( "/resources/examples/example_corpus" ),
+      OMOP_DB( "/resources/examples/example_omop/patient_demographics.json" ),
+      OUTPUT_DIR( "/resources/examples/example_output" );
+      private final String _defaultPath;
+      ProjectParm( final String defaultPath ) {
+         _defaultPath = defaultPath;
+      }
+      private String getDefaultPath() {
+         return CWD + _defaultPath;
+      }
+   }
 
    static private final String PROJECT = "PROJECT";
-   static private final String PIPER_FILE = "PIPER_FILE";
-   static private final String TEXT_CORPUS = "TEXT_CORPUS";
-   static private final String OMOP_DB = "OMOP_DB";
-   static private final String OUTPUT_DIR = "OUTPUT_DIR";
-
-
    static private final String PROJECT_NAME = "Project:";
-
+   static private final String EXAMPLE_PROJECT = "ExampleProject";
+   static private final String PROJECTS_DIR = CWD + "/resources/projects/";
    static private final String _projectListPath = PROJECTS_DIR + "ProjectList.txt";
+
    private final ArrayList<String> _projectList = new ArrayList<>();
    private final Map<String,String> _projectFileMap = new HashMap<>();
-   private final Map<String,String> _projectMap = new HashMap<>();
+   private final Map<String,String> _projectParmMap = new HashMap<>();
 
    private final ProjectTableModel _tableModel = new ProjectTableModel();
 
-
-
-   static private final String FONT = "SansSerif";
+   static private final String FONT = Font.SANS_SERIF;
 
    public ProjectPanel() {
       super( new BorderLayout( 0, 5 ) );
@@ -86,14 +86,14 @@ public class ProjectPanel extends JPanel {
    }
 
    public String getProjectName() {
-      return _projectMap.computeIfAbsent( PROJECT, k -> EXAMPLE_PROJECT );
+      return _projectParmMap.computeIfAbsent( PROJECT, k -> EXAMPLE_PROJECT );
    }
 
    private void setProjectName( final String name ) {
       if ( !name.equals( getProjectName() ) ) {
          writeProjectFile();
       }
-      _projectMap.put( PROJECT, name );
+      _projectParmMap.put( PROJECT, name );
       _projectList.remove( name );
       _projectList.add( 0, name );
       _projectFileMap.computeIfAbsent( name, p -> PROJECTS_DIR + p + ".txt" );
@@ -106,72 +106,36 @@ public class ProjectPanel extends JPanel {
    }
 
    private String getProjectFile( final String name ) {
-      return _projectMap.computeIfAbsent( name, p -> PROJECTS_DIR + p + ".txt" );
+      return _projectParmMap.computeIfAbsent( name, p -> PROJECTS_DIR + p + ".txt" );
    }
 
-
-   public String getPiperFile() {
-      return _projectMap.computeIfAbsent( PIPER_FILE, k -> DEFAULT_PIPER_FILE );
+   String getParmPath( final ProjectParm parm ) {
+      return _projectParmMap.computeIfAbsent( parm.name(), k -> parm.getDefaultPath() );
    }
 
-   private void setPiperFile( final String path ) {
-      if ( !path.toLowerCase().endsWith( ".piper" ) ) {
-         setPiperFile( DEFAULT_PIPER_FILE );
+   private void setFileParm( final ProjectParm parm, final String ext, final String path ) {
+      final String p = path.trim();
+      if ( !p.toLowerCase().endsWith( ext ) ) {
+         setFileParm( parm, ext, parm.getDefaultPath() );
          return;
       }
-      final File piper = new File( path );
-      if ( piper.isFile() && piper.canRead() ) {
-         _projectMap.put( PIPER_FILE, path );
+      if ( new File( p ).isFile() ) {
+         _projectParmMap.put( parm.name(), p );
       } else {
-         setPiperFile( DEFAULT_PIPER_FILE );
+         setFileParm( parm, ext, parm.getDefaultPath() );
       }
    }
 
-   public String getTextCorpus() {
-      return _projectMap.computeIfAbsent( TEXT_CORPUS, k -> DEFAULT_TEXT_CORPUS );
-   }
-
-   private void setTextCorpus( final String path ) {
-      final File dir = new File( path );
+   private void setDirParm( final ProjectParm parm, final String path ) {
+      final File dir = new File( path.trim() );
       if ( dir.isDirectory() ) {
-         _projectMap.put( TEXT_CORPUS, path );
+         _projectParmMap.put( parm.name(), path );
       } else {
-         setTextCorpus( DEFAULT_TEXT_CORPUS);
-      }
-   }
-
-   public String getOmopDb() {
-      return _projectMap.computeIfAbsent( OMOP_DB, k -> DEFAULT_OMOP_DB );
-   }
-
-   private void setOmopDb( final String path ) {
-      if ( !path.toLowerCase().endsWith( ".json" ) ) {
-         setOmopDb( DEFAULT_OMOP_DB );
-         return;
-      }
-      final File json = new File( path );
-      if ( json.isFile() ) {
-         _projectMap.put( OMOP_DB, path );
-      } else {
-         setOmopDb( DEFAULT_OMOP_DB );
-      }
-   }
-
-   public String getOutputDir() {
-      return _projectMap.computeIfAbsent(OUTPUT_DIR, k -> DEFAULT_OUTPUT_DIR );
-   }
-
-   private void setOutputDir( final String path ) {
-      final File dir = new File( path );
-      if ( dir.isDirectory() ) {
-         _projectMap.put( OUTPUT_DIR, path );
-      } else {
-         setOutputDir( DEFAULT_OUTPUT_DIR );
+         setDirParm( parm, parm.getDefaultPath() );
       }
    }
 
    private JComponent createProjectTable() {
-//      final JTable table = new SmoothTipTable( _tableModel ) {
       final JTable table = new JTable( _tableModel ) {
          @Override
          public String getToolTipText( final MouseEvent event) {
@@ -253,15 +217,7 @@ public class ProjectPanel extends JPanel {
 
 
    private final class ProjectTableModel implements TableModel {
-      private final Consumer<String> setPiperFile1 = ProjectPanel.this::setPiperFile;
-      private final Consumer<String> setTextCorpus1 = ProjectPanel.this::setTextCorpus;
-      private final Consumer<String> setOmopDb1 = ProjectPanel.this::setOmopDb;
-      private final Consumer<String> setOutputDir1 = ProjectPanel.this::setOutputDir;
       private final EventListenerList _listenerList = new EventListenerList();
-      private final FileTableCellEditor _piperChooser = new FileTableCellEditor();
-      private final FileTableCellEditor _corpusChooser = new FileTableCellEditor();
-      private final FileTableCellEditor _jsonChooser = new FileTableCellEditor();
-      private final FileTableCellEditor _outDirChooser = new FileTableCellEditor();
       private final String[] COLUMN_NAMES = { "Name", "Value", "Explorer" };
       private final Class<?>[] COLUMN_CLASSES = { String.class, String.class, File.class };
       private final String[] ROW_NAMES = { " Piper File", " Corpus Directory",
@@ -271,30 +227,19 @@ public class ProjectPanel extends JPanel {
                                            "A JSON file with demographics in the required OMOP format.",
                                            "A directory for output from the Phenotype Summarizer and Database Loader." };
       private final String[] TYPES = { "file", "directory", "file", "directory" };
-      private final Supplier<String>[] GETTERS = new Supplier[]{ ProjectPanel.this::getPiperFile,
-                                                                 ProjectPanel.this::getTextCorpus,
-                                                                 ProjectPanel.this::getOmopDb,
-                                                                 ProjectPanel.this::getOutputDir };
-      private final Consumer<String>[] SETTERS = new Consumer[]{ setPiperFile1,
-                                                         setTextCorpus1,
-                                                         setOmopDb1,
-                                                         setOutputDir1 };
-//      private final FileTableCellEditor[] CHOOSERS = { _piperChooser, _corpusChooser, _jsonChooser, _outDirChooser };
+private final Supplier<String>[] GETTERS = new Supplier[]{ () -> getParmPath( PIPER_FILE ),
+                                                           () -> getParmPath( TEXT_CORPUS ),
+                                                           () -> getParmPath( OMOP_DB ),
+                                                           () -> getParmPath( OUTPUT_DIR ) };
+      private final Consumer<String>[] SETTERS = new Consumer[]{ f -> setFileParm( PIPER_FILE, ".piper", (String)f ),
+                                                                 d -> setDirParm( TEXT_CORPUS, (String)d ),
+                                                                 f -> setFileParm( OMOP_DB, ".json", (String)f ),
+                                                                 d -> setDirParm( OUTPUT_DIR, (String)d ) };
       private final FileTableCellEditor[] CHOOSERS = { createChooser( FILES_ONLY, "Piper Files", "piper" ),
                                                        createChooser( DIRECTORIES_ONLY, null, null ),
                                                        createChooser( FILES_ONLY, "OMOP JSON", "json" ),
                                                        createChooser( DIRECTORIES_ONLY, null, null ) };
 
-//      private ProjectTableModel() {
-//         _corpusChooser.getFileChooser().setFileSelectionMode( JFileChooser.DIRECTORIES_ONLY );
-//         _outDirChooser.getFileChooser().setFileSelectionMode( JFileChooser.DIRECTORIES_ONLY );
-//         _piperChooser.getFileChooser().setFileSelectionMode( JFileChooser.FILES_ONLY );
-//         _piperChooser.getFileChooser().setFileFilter(
-//               new FileNameExtensionFilter( "Piper Files", "piper" ) );
-//         _jsonChooser.getFileChooser().setFileSelectionMode( JFileChooser.FILES_ONLY );
-//         _jsonChooser.getFileChooser().setFileFilter(
-//               new FileNameExtensionFilter( "OMOP Demographics JSON", "json" ) );
-//      }
       private FileTableCellEditor createChooser( final int mode, final String filterName, final String filterExt ) {
          final FileTableCellEditor chooser = new FileTableCellEditor();
          chooser.getFileChooser().setFileSelectionMode( mode );
@@ -306,6 +251,9 @@ public class ProjectPanel extends JPanel {
       private void reset() {
          fireTableChanged( new TableModelEvent( this ) );
       }
+      private String normalizePath( final String filepath ) {
+         return Paths.get( filepath ).toAbsolutePath().normalize().toString();
+      }
       private String getToolTip( final int row, final int column ) {
          switch ( column ) {
             case 0 : return TOOLTIPS[ row ];
@@ -315,20 +263,9 @@ public class ProjectPanel extends JPanel {
          return "";
       }
       private FileTableCellEditor getCellEditor( final int row, final int column ) {
-//         FileTableCellEditor editor;
-//         switch ( row ) {
-//            case 0 : editor = _piperChooser; break;
-//            case 1 : editor = _corpusChooser; break;
-//            case 2 : editor = _jsonChooser; break;
-//            case 3 : editor = _outDirChooser; break;
-//            default: editor = _defaultChooser;
-//         }
-//         editor.getFileChooser().setSelectedFile( (File)getValueAt( row, column ) );
-//         return editor;
          CHOOSERS[ row ].getFileChooser().setSelectedFile( (File)getValueAt( row, column ) );
          return CHOOSERS[ row ];
       }
-
       @Override
       public int getRowCount() {
          return ROW_NAMES.length;
@@ -351,19 +288,10 @@ public class ProjectPanel extends JPanel {
             return ROW_NAMES[ row ];
          } else if ( column == 1 ) {
             return normalizePath( GETTERS[ row ].get() );
-//            switch ( row ) {
-//               case 0 : return normalizePath( getPiperFile() );
-//               case 1 : return normalizePath( getTextCorpus() );
-//               case 2 : return normalizePath( getOmopDb() );
-//               case 3 : return normalizePath( getOutputDir() );
-//            }
          } else if ( column == 2 ) {
             return new File( (String) getValueAt( row, 1 ) );
          }
          return "ERROR";
-      }
-      private String normalizePath( final String filepath ) {
-         return Paths.get( filepath ).toAbsolutePath().normalize().toString();
       }
       @Override
       public boolean isCellEditable( final int row, final int column ) {
@@ -372,26 +300,11 @@ public class ProjectPanel extends JPanel {
       @Override
       public void setValueAt( final Object aValue, final int row, final int column ) {
          if ( column == 1 ) {
-            final String text = aValue.toString().trim();
-            SETTERS[ row ].accept( text );
-//            switch ( row ) {
-//               case 0 : setPiperFile( text );
-//               case 1 : setTextCorpus( text );
-//               case 2 : setOmopDb( text );
-//               case 3 : setOutputDir( text );
-//            }
-            fireTableChanged( new TableModelEvent( this, row, row, column ) );
+            SETTERS[ row ].accept( aValue.toString().trim() );
          } else if ( column == 2 && aValue instanceof File ) {
-            final String filePath = ((File)aValue).getPath();
-            SETTERS[ row ].accept( filePath );
-//            switch ( row ) {
-//               case 0 : setPiperFile( filePath );
-//               case 1 : setTextCorpus( filePath );
-//               case 2 : setOmopDb( filePath );
-//               case 3 : setOutputDir( filePath );
-//            }
-            fireTableChanged( new TableModelEvent( this, row, row, 1 ) );
+            SETTERS[ row ].accept( ((File)aValue).getPath() );
          }
+         fireTableChanged( new TableModelEvent( this, row, row, 1 ) );
       }
       @Override
       public void addTableModelListener( final TableModelListener listener ) {
@@ -441,7 +354,7 @@ public class ProjectPanel extends JPanel {
 
    private void readProjectFile() {
       final String file = getProjectFile();
-      if ( ParameterHandler.readMapFromFile( file, _projectMap ) ) {
+      if ( ParameterHandler.readMapFromFile( file, _projectParmMap ) ) {
          LOGGER.info( "Loaded project parameters from " + file );
       }
    }
@@ -452,10 +365,10 @@ public class ProjectPanel extends JPanel {
       try ( Writer writer = new BufferedWriter( new FileWriter( file ) ) ) {
          writer.write( "// Project file saved " + LocalDate.now() + "\n\n");
          writer.write( PROJECT + "=" + getProjectName() + "\n" );
-         writer.write( PIPER_FILE + "=" + getPiperFile() + "\n" );
-         writer.write( TEXT_CORPUS + "=" + getTextCorpus() + "\n" );
-         writer.write( OMOP_DB + "=" + getOmopDb() + "\n" );
-         writer.write( OUTPUT_DIR + "=" + getOutputDir() + "\n" );
+         writer.write( PIPER_FILE.name() + "=" + getParmPath( PIPER_FILE ) + "\n" );
+         writer.write( TEXT_CORPUS.name() + "=" + getParmPath( TEXT_CORPUS ) + "\n" );
+         writer.write( OMOP_DB.name() + "=" + getParmPath( OMOP_DB ) + "\n" );
+         writer.write( OUTPUT_DIR.name() + "=" + getParmPath( OUTPUT_DIR ) + "\n" );
       } catch ( IOException ioE ) {
          LOGGER.error( "Could not write " + file, ioE );
       }
@@ -464,20 +377,21 @@ public class ProjectPanel extends JPanel {
    public String getPiperGuiParms() {
       final File cliFile = new File( PROJECTS_DIR, getProjectName() + ".cli" );
       try ( Writer writer = new BufferedWriter( new FileWriter( cliFile ) ) ) {
-         writer.write( "InputDirectory=" + getTextCorpus() + "\n" );
-         writer.write( "OutputDirectory=" + getOutputDir() + "\n" );
+         writer.write( "InputDirectory=" + getParmPath( TEXT_CORPUS ) + "\n" );
+         writer.write( "OutputDirectory=" + getParmPath( OUTPUT_DIR ) + "\n" );
       } catch ( IOException ioE ) {
          LOGGER.error( "Could not write Piper CLI file with project parameters.", ioE );
       }
-      return "-p " + getPiperFile() + " -c " + cliFile.getPath();
+      return "-p " + getParmPath( PIPER_FILE ) + " -c " + cliFile.getPath();
    }
 
    public String getEtlParms() {
-      return getOutputDir() + " " + getOmopDb() + " " + getOutputDir() + "/vizDb/" + getProjectName();
+      return getParmPath( OUTPUT_DIR ) + " " + getParmPath( OMOP_DB )
+            + " " + getParmPath( OUTPUT_DIR ) + "/vizDb/" + getProjectName();
    }
 
    public String getVizParms() {
-      return "/vizDb/" + getProjectName();
+      return getParmPath( OUTPUT_DIR ) + "/vizDb/" + getProjectName();
    }
 
 

@@ -1,1 +1,1 @@
-OMOP database for example patients.
+University of Pittsburgh-pull schema of OMOP database for example patients.
