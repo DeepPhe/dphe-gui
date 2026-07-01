@@ -103,6 +103,14 @@ final public class ParameterHandler {
       return value;
    }
 
+   static public String getOrDefault( final Map<String,String> map, final String defaultValue, final String... names ) {
+      final String value = getParameter( map, names );
+      if ( value.equals( NO_VALUE ) ) {
+         return defaultValue;
+      }
+      return value;
+   }
+
    static public void checkValueValid( final String value, final String parameterFile, final String... names ) {
       if ( isValueValid( value) ) {
          return;
