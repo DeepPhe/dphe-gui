@@ -32,9 +32,11 @@ final public class ParameterHandler {
    static public boolean readMapFromFile( final String filepath,
                                           final Map<String,String> map,
                                           final boolean toUpperCase ) {
-      if ( !new File( filepath ).canRead() ) {
+      if ( filepath == null || filepath.trim().isEmpty() || !new File( filepath ).canRead() ) {
          return false;
       }
+      LOGGER.info( "Reading parameter file " + filepath + " ...");
+      int count = 0;
       try ( BufferedReader reader = new BufferedReader( new FileReader( filepath ) ) ) {
          String line = "";
          while ( line != null ) {
@@ -50,13 +52,20 @@ final public class ParameterHandler {
                continue;
             }
             final String key = toUpperCase ? splits[0].trim().toUpperCase() : splits[0].trim();
-            map.put( key, splits[1].trim() );
+            final String previousValue = map.put( key, splits[1].trim() );
+            if ( previousValue != null && !previousValue.equals( splits[1].trim() ) ) {
+               LOGGER.info( "Overwrote previous value of " + splits[0].trim()
+                     + ", " + previousValue + " , with " + splits[1].trim() );
+            }
+            count++;
             line = reader.readLine();
          }
       } catch ( IOException ioE ) {
          LOGGER.error( ioE.getMessage() );
+         LOGGER.error( "Cannot read the parameter file " + filepath );
          return false;
       }
+      LOGGER.info( "Parsed " + count + " parameter values from " + filepath );
       return true;
    }
 
@@ -90,10 +99,11 @@ final public class ParameterHandler {
 
    static public String getParameter( final Map<String,String> map, final String... names ) {
       return Arrays.stream( names )
-                                 .map( String::toUpperCase )
-                                 .map( map::get )
-                                 .filter( Objects::nonNull ).findAny()
-                                 .orElse( NO_VALUE );
+                  .filter( Objects::nonNull )
+                  .map( String::toUpperCase )
+                  .map( map::get )
+                  .filter( Objects::nonNull ).findAny()
+                  .orElse( NO_VALUE );
    }
 
    static public String getAndCheckParameter( final Map<String,String> map, final String parameterFile,
@@ -104,6 +114,9 @@ final public class ParameterHandler {
    }
 
    static public String getOrDefault( final Map<String,String> map, final String defaultValue, final String... names ) {
+      if ( map == null ) {
+         return defaultValue;
+      }
       final String value = getParameter( map, names );
       if ( value.equals( NO_VALUE ) ) {
          return defaultValue;

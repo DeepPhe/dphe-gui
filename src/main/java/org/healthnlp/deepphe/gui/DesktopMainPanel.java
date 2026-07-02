@@ -4,7 +4,6 @@ import org.apache.ctakes.core.util.external.SystemUtil;
 import org.apache.ctakes.gui.component.LoggerPanel;
 import org.apache.ctakes.gui.util.IconLoader;
 import org.apache.log4j.Logger;
-import org.healthnlp.deepphe.util.ParameterHandler;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -12,17 +11,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import static javax.swing.JOptionPane.INFORMATION_MESSAGE;
 import static org.healthnlp.deepphe.gui.DesktopMainPanel.ButtonInfo.*;
-import static org.healthnlp.deepphe.gui.DpheDesktop.DPHE_SUBDIR;
-import static org.healthnlp.deepphe.gui.DpheDesktop.ETL_SUBDIR;
-import static org.healthnlp.deepphe.gui.DpheDesktop.VIZ_SUBDIR;
 
 /**
  * @author SPF , chip-nlp
@@ -33,45 +27,26 @@ public class DesktopMainPanel extends JPanel {
     static private final Logger LOGGER = Logger.getLogger( "DeepPhe Desktop" );
 
     enum ButtonInfo {
-        DPHE( "NLP Summarizer", DPHE_SUBDIR, "bin/runDeepPheGui", "NLP_3_100.png",
+        DPHE( "NLP Summarizer","NLP_3_100.png",
               "Runs a text corpus through the DeepPhe phenotype summarizer pipeline." ),
-        ETL( "Data Merge Tool", ETL_SUBDIR, "start-etl", "ETL_3_100.png",
+        ETL( "Data Merge Tool",  "ETL_3_100.png",
               "Merges NLP summarizer output and an OMOP database into a database that the Viz tool can use." ),
-        VIZ( "Visualization GUI", VIZ_SUBDIR, "start-viz", "Viz_4_100.png",
+        VIZ( "Visualization GUI", "Viz_4_100.png",
               "Displays information about the patient cohort, individual patients, and documents." ),
         WIKI( "Wiki", "Wiki_1_80.png" ,"Manuals for the DeepPhe tools." ),
         SITE( "Web Site", "Website_1_80.png", "The main DeepPhe web site." );
         private final String _name;
-        private final String _subDir;
-        private final String _command;
         private final String _icon;
         private final String _tip;
         ButtonInfo( final String name, final String icon, final String tip ) {
-            this( name, null, null, icon, tip );
-        }
-        ButtonInfo( final String name, final String subDir, final String command,
-                    final String icon, final String tip ) {
             _name = name;
-            _subDir = subDir;
-            _command = command;
             _icon = icon;
             _tip = tip;
         }
-        private String getDir() {
-            return DpheDesktop.getRoot() + "/" + _subDir;
-        }
-        private String getCommand() {
-            return getDir() + "/" + _command;
-        }
-        private String getIcon() {
+        private String getIconPath() {
             return "org/healthnlp/deepphe/desktop/icon/" + _icon;
         }
     }
-
-    private static final String HTTPS_DEEPPHE_NLP_WIKI = "https://deepphe.github.io/";
-    private static final String HTTPS_DEEPPHE_GITHUB_IO = "https://deepphe.github.io/";
-
-    private final Map<String,String> _parameterMap = new HashMap<>();
 
     private final ProjectPanel _projectPanel;
     private JButton _dpheButton;
@@ -79,7 +54,6 @@ public class DesktopMainPanel extends JPanel {
     private JButton _vizButton;
     private JButton _wikiButton;
     private JButton _siteButton;
-
 
     DesktopMainPanel() {
         super( new BorderLayout() );
@@ -92,34 +66,15 @@ public class DesktopMainPanel extends JPanel {
         SwingUtilities.invokeLater( new ButtonIconLoader() );
     }
 
-    public void readParameterFile( final String... args ) {
-        if ( args.length == 0 ) {
-            LOGGER.warn( "No parameter file.  Using default tool location and start settings." );
-        } else if  ( args.length == 1 ) {
-            final String parameterFile = args[ 0 ];
-            if ( !ParameterHandler.readMapFromFile( parameterFile, _parameterMap ) ) {
-                LOGGER.error( "Cannot read the parameter file: " + parameterFile );
-            }
-        }
-        final String dpheDir = ParameterHandler.getOrDefault( _parameterMap, DPHE.getDir(),
-              "DpheDir", "DeepPheDir", "NlpDir", "SummarizerDir" );
-        final String startDphe = ParameterHandler.getOrDefault( _parameterMap, DPHE.getCommand(),
-              "StartDphe", "StartDeepPhe", "StartNlp", "StartSummarizer" );
-        final String createVizDbDir = ParameterHandler.getOrDefault( _parameterMap, ETL.getDir(),
-              "DpheVizDbCreatorDir", "DpheVisDbCreatorDir", "VizDbCreatorDir", "VisDbCreatorDir" );
-        final String startCreateVizDb = ParameterHandler.getOrDefault( _parameterMap, ETL.getCommand(),
-              "StartDpheVizDbCreator", "StartDpheVisDbCreator", "StartVizDbCreator", "StartVisDbCreator" );
-        final String vizDir = ParameterHandler.getOrDefault( _parameterMap, VIZ.getDir(),
-              "VizDir", "VisDir", "VizualizerDir", "VisualizerDir" );
-        final String startViz = ParameterHandler.getOrDefault( _parameterMap, VIZ.getCommand(),
-              "StartViz", "StartVis", "StartVizualizer", "StartVisualizer" );
+    public void initialize() {
          _dpheButton.addActionListener(
-               new StartAction( DPHE, dpheDir, startDphe, _projectPanel::getPiperGuiParms ) );
+               new ToolAction( ButtonInfo.DPHE, DpheDesktop.ToolConfig.DPHE, _projectPanel::getPiperGuiParms ) );
         _etlButton.addActionListener(
-              new StartAction( ETL, createVizDbDir, startCreateVizDb, _projectPanel::getEtlParms ) );
-        _vizButton.addActionListener( new StartAction( VIZ, vizDir, startViz, _projectPanel::getVizParms ) );
-        _wikiButton.addActionListener( new WebAction( HTTPS_DEEPPHE_NLP_WIKI ) );
-        _siteButton.addActionListener( new WebAction( HTTPS_DEEPPHE_GITHUB_IO ) );
+              new ToolAction( ButtonInfo.ETL, DpheDesktop.ToolConfig.ETL, _projectPanel::getEtlParms ) );
+        _vizButton.addActionListener(
+              new ToolAction( ButtonInfo.VIZ, DpheDesktop.ToolConfig.VIZ, _projectPanel::getVizParms ) );
+        _wikiButton.addActionListener( new WebAction( DpheDesktop.HTTPS_DEEPPHE_NLP_WIKI ) );
+        _siteButton.addActionListener( new WebAction( DpheDesktop.HTTPS_DEEPPHE_GITHUB_IO ) );
     }
 
     private ProjectPanel createProjectPanel() {
@@ -156,18 +111,17 @@ public class DesktopMainPanel extends JPanel {
         return button;
     }
 
-
-    private final class StartAction implements ActionListener {
+    private final class ToolAction implements ActionListener {
         private final ButtonInfo _buttonInfo;
-        private final String _dir;
-        private final String _command;
+        private final DpheDesktop.ToolConfig _toolConfig;
         private final Supplier<String> _parmFx;
         private boolean _paused = false;
 
-        private StartAction( final ButtonInfo buttonInfo, final String dir, final String command, final Supplier<String> parmFx ) {
+        private ToolAction( final ButtonInfo buttonInfo, final
+                            DpheDesktop.ToolConfig toolConfig,
+                            final Supplier<String> parmFx ) {
             _buttonInfo = buttonInfo;
-            _dir = dir;
-            _command = command;
+            _toolConfig = toolConfig;
             _parmFx = parmFx;
         }
 
@@ -177,11 +131,10 @@ public class DesktopMainPanel extends JPanel {
                 return;
             }
             _paused = true;
-            final String logFile = _projectPanel.getParmPath( ProjectPanel.ProjectParm.OUTPUT_DIR )
-                  + "/" + _projectPanel.getProjectName() + _buttonInfo._subDir + ".log";
-            final String command = _dir + "/" + _command + " " + _parmFx.get();
+            final String logFile = _toolConfig.getLogFile();
+            final String command = _toolConfig.getFullCommand() + " " + _parmFx.get();
             final SystemUtil.CommandRunner runner = new SystemUtil.CommandRunner( command );
-            runner.setDirectory( _dir );
+            runner.setDirectory( _toolConfig.getFullDir() );
             runner.setLogFiles( logFile );
             LOGGER.info( "Starting " + _buttonInfo._name + " ..." );
             LOGGER.info( command );
@@ -196,13 +149,16 @@ public class DesktopMainPanel extends JPanel {
         }
     }
 
-    private static final class WebAction implements ActionListener {
+    private final class WebAction implements ActionListener {
         private final String _site;
         private WebAction( final String site ) {
             _site = site;
         }
         @Override
         public void actionPerformed( final ActionEvent event ) {
+            if ( _dpheButton == null ) {
+                return;
+            }
             LOGGER.info( "Opening " + _site + " ..." );
             SystemUtil.openWebPage( _site );
         }
@@ -215,11 +171,11 @@ public class DesktopMainPanel extends JPanel {
     private final class ButtonIconLoader implements Runnable {
         @Override
         public void run() {
-            final Icon dpheIcon = IconLoader.loadIcon( DPHE.getIcon() );
-            final Icon etlIcon = IconLoader.loadIcon( ETL.getIcon() );
-            final Icon vizIcon = IconLoader.loadIcon( VIZ.getIcon() );
-            final Icon nlpWikiIcon = IconLoader.loadIcon( WIKI.getIcon() );
-            final Icon siteIcon = IconLoader.loadIcon( SITE.getIcon() );
+            final Icon dpheIcon = IconLoader.loadIcon( ButtonInfo.DPHE.getIconPath() );
+            final Icon etlIcon = IconLoader.loadIcon( ButtonInfo.ETL.getIconPath() );
+            final Icon vizIcon = IconLoader.loadIcon( ButtonInfo.VIZ.getIconPath() );
+            final Icon nlpWikiIcon = IconLoader.loadIcon( ButtonInfo.WIKI.getIconPath() );
+            final Icon siteIcon = IconLoader.loadIcon( ButtonInfo.SITE.getIconPath() );
             _dpheButton.setIcon( dpheIcon );
             _etlButton.setIcon( etlIcon );
             _vizButton.setIcon( vizIcon );
