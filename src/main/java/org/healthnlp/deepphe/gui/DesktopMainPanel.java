@@ -10,8 +10,18 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -133,19 +143,134 @@ public class DesktopMainPanel extends JPanel {
             _paused = true;
             final String logFile = _toolConfig.getLogFile();
             final String command = _toolConfig.getFullCommand() + " " + _parmFx.get();
-            final SystemUtil.CommandRunner runner = new SystemUtil.CommandRunner( command );
-            runner.setDirectory( _toolConfig.getFullDir() );
-            runner.setLogFiles( logFile );
             LOGGER.info( "Starting " + _buttonInfo._name + " ..." );
             LOGGER.info( command );
             LOGGER.info( "\n     Initializing may require several seconds.\n     Please Wait.\n" );
+            if ( _buttonInfo == ETL ) {
+                runVisibleLoggingCommand( command, _toolConfig.getFullDir(), logFile );
+                return;
+            }
+            final SystemUtil.CommandRunner runner = new SystemUtil.CommandRunner( command );
+            runner.setDirectory( _toolConfig.getFullDir() );
+            runner.setLogFiles( logFile );
             try {
                 SystemUtil.run( runner );
             } catch ( IOException ioE ) {
                 LOGGER.error( ioE.getMessage() );
             }
-            Executors.newSingleThreadScheduledExecutor()
-                     .schedule( () -> { _paused = false; }, 10, TimeUnit.SECONDS );
+            scheduleUnpause();
+        }
+
+        private void runVisibleLoggingCommand( final String command, final String directory, final String logFile ) {
+            final ExecutorService executor = Executors.newSingleThreadExecutor();
+            executor.execute( () -> {
+                final File commandLog = getCommandLog( directory, logFile );
+                try {
+                    LOGGER.info( "Writing " + _buttonInfo._name + " output to " + commandLog.getPath() );
+                    final int exitCode = runProcess( command, directory, commandLog );
+                    if ( exitCode == 0 ) {
+                        LOGGER.info( _buttonInfo._name + " completed successfully." );
+                    } else {
+                        LOGGER.error( _buttonInfo._name + " exited with code " + exitCode + "." );
+                    }
+                } catch ( IOException ioE ) {
+                    LOGGER.error( "Could not run " + _buttonInfo._name + ".", ioE );
+                } catch ( InterruptedException intE ) {
+                    Thread.currentThread().interrupt();
+                    LOGGER.error( _buttonInfo._name + " was interrupted.", intE );
+                } finally {
+                    unpause();
+                    executor.shutdown();
+                }
+            } );
+        }
+
+        private int runProcess( final String command, final String directory, final File commandLog )
+                throws IOException, InterruptedException {
+            final File parent = commandLog.getParentFile();
+            if ( parent != null ) {
+                parent.mkdirs();
+            }
+            final ProcessBuilder processBuilder = createProcessBuilder( command );
+            processBuilder.redirectErrorStream( true );
+            if ( directory != null && !directory.isEmpty() ) {
+                final File commandDir = new File( directory );
+                if ( !commandDir.exists() ) {
+                    commandDir.mkdirs();
+                }
+                processBuilder.directory( commandDir );
+            }
+            ensureEnvironment( processBuilder );
+            final Process process = processBuilder.start();
+            try ( BufferedReader reader = new BufferedReader(
+                    new InputStreamReader( process.getInputStream(), StandardCharsets.UTF_8 ) );
+                  BufferedWriter writer = new BufferedWriter(
+                        new OutputStreamWriter( new FileOutputStream( commandLog, false ), StandardCharsets.UTF_8 ) ) ) {
+                String line = reader.readLine();
+                while ( line != null ) {
+                    writer.write( line );
+                    writer.newLine();
+                    writer.flush();
+                    LOGGER.info( line );
+                    line = reader.readLine();
+                }
+            }
+            return process.waitFor();
+        }
+
+        private File getCommandLog( final String directory, final String logFile ) {
+            final File file = new File( logFile );
+            if ( file.isAbsolute() || directory == null || directory.isEmpty() ) {
+                return file;
+            }
+            return new File( directory, logFile );
+        }
+
+        private ProcessBuilder createProcessBuilder( final String command ) {
+            final String osName = System.getProperty( "os.name", "" ).toLowerCase();
+            if ( osName.contains( "windows" ) ) {
+                return new ProcessBuilder( "cmd.exe", "/c", command );
+            }
+            return new ProcessBuilder( "bash", "-c", command );
+        }
+
+        private void ensureEnvironment( final ProcessBuilder processBuilder ) {
+            final Map<String,String> environment = processBuilder.environment();
+            final String javaHome = System.getProperty( "java.home" );
+            if ( javaHome != null && !javaHome.isEmpty() ) {
+                environment.put( "JAVA_HOME", javaHome );
+            }
+            if ( !environment.containsKey( "CTAKES_HOME" ) ) {
+                String ctakesHome = System.getenv( "CTAKES_HOME" );
+                if ( ctakesHome == null || ctakesHome.isEmpty() ) {
+                    ctakesHome = System.getProperty( "user.dir" );
+                }
+                environment.put( "CTAKES_HOME", ctakesHome );
+            }
+            if ( !environment.containsKey( "CLASSPATH" ) ) {
+                final String classPath = System.getProperty( "java.class.path" );
+                if ( classPath != null && !classPath.isEmpty() ) {
+                    environment.put( "CLASSPATH", classPath );
+                }
+            }
+            for ( String propertyName : System.getProperties().stringPropertyNames() ) {
+                if ( propertyName.startsWith( "ctakes.env." ) ) {
+                    environment.put( propertyName.substring( "ctakes.env.".length() ),
+                                     System.getProperty( propertyName ) );
+                }
+            }
+        }
+
+        private void scheduleUnpause() {
+            final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+            executor.schedule( () -> {
+                unpause();
+                executor.shutdown();
+            }, 10, TimeUnit.SECONDS );
+        }
+
+        synchronized private void unpause() {
+            _paused = false;
         }
     }
 
