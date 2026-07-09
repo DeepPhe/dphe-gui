@@ -26,6 +26,10 @@ public class DpheDesktop {
     static private final String CWD = System.getProperty( "user.dir" );
     static private final String ROOT = System.getenv( "DEEPPHE_ROOT" );
     static private final String ALT_ROOT = new File( CWD ).getParent();
+    // Example corpus/output live in the user's writable DeepPheDocs directory,
+    // not under the (possibly read-only) install root. The installer unpacks
+    // DeepPhe-examples.zip there and points ExampleProject.txt at the same place.
+    static private final String DOCS_DIR = System.getProperty( "user.home" ) + "/DeepPheDocs";
     static final String HTTPS_DEEPPHE_NLP_WIKI = "https://deepphe.github.io/";
     static final String HTTPS_DEEPPHE_GITHUB_IO = "https://deepphe.github.io/";
     static private final String PROJECT_LIST_PATH = DirConfig.PROJECT.getFullDir() + "/ProjectList.txt";
@@ -125,10 +129,10 @@ public class DpheDesktop {
                 return DirConfig.PROJECT.getFullDir() + "/" + PROJECT_NAME.get() + ".txt";
             }
         },
-        PIPER_FILE( DirConfig.DPHE.getFullDir() + "/resources/pipeline/DeepPheDefault.piper" ),
-        CORPUS_DIR( DirConfig.EXAMPLE.getFullDir() + "/example_corpus" ),
-        OMOP_DB( DirConfig.EXAMPLE.getFullDir() + "/example_omop/patient_demographics.json" ),
-        OUTPUT_DIR( DirConfig.EXAMPLE.getFullDir() + "/example_output" );
+        PIPER_FILE( DirConfig.DPHE.getFullDir() + "/resources/pipeline/DefaultDeepPhe.piper" ),
+        CORPUS_DIR( DOCS_DIR + "/example_corpus" ),
+        OMOP_DB( DOCS_DIR + "/example_omop/patient_demographics.json" ),
+        OUTPUT_DIR( DOCS_DIR + "/example_output" );
         private final String _defaultValue;
         ProjectParameter( final String defaultValue ) {
             _defaultValue = defaultValue;
