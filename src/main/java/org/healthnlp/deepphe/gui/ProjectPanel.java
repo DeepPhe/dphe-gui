@@ -278,6 +278,23 @@ public class ProjectPanel extends JPanel {
       return OUTPUT_DIR.get() + "/vizDb/" + PROJECT_NAME.get();
    }
 
+   public File getVisualizerDatabaseFile() {
+      return new File( getDocsDirectory(), "visualizer_database/deepphe.sqlite3" );
+   }
+
+   private File getDocsDirectory() {
+      final File outputDir = new File( OUTPUT_DIR.get() ).getAbsoluteFile();
+      if ( "json".equalsIgnoreCase( outputDir.getName() )
+            && outputDir.getParentFile() != null
+            && outputDir.getParentFile().getParentFile() != null ) {
+         return outputDir.getParentFile().getParentFile();
+      }
+      if ( outputDir.getParentFile() != null ) {
+         return outputDir.getParentFile();
+      }
+      return outputDir;
+   }
+
 
    private void registerShutdownHook() {
       Runtime.getRuntime().addShutdownHook( new Thread( () -> {

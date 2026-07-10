@@ -152,8 +152,11 @@ public class DpheDesktop {
 
     enum DirConfig {
         DPHE( ".DeepPhe", "DpheDir", "DeepPheDir", "NlpDir", "SummarizerDir" ),
-        ETL( ".DeepPhe-ETL", "DpheVizDbCreatorDir", "DpheVisDbCreatorDir", "VizDbCreatorDir", "VisDbCreatorDir" ),
-        VIZ( ".DeepPhe-Viz", "VizDir", "VisDir", "VizualizerDir", "VisualizerDir" ),
+        ETL( ".DeepPhe/tools/dphe-pipeline",
+             "DpheVizDbCreatorDir", "DpheVisDbCreatorDir", "VizDbCreatorDir", "VisDbCreatorDir" ),
+        DATA_API( ".DeepPhe/tools/dphe-data-api", "DataApiDir", "DpheDataApiDir" ),
+        VIZ( ".DeepPhe/tools/deepphe-visualizer-v2", "VizDir", "VisDir", "VizualizerDir", "VisualizerDir" ),
+        LOG( ".DeepPhe/logs", "LogsDir", "LogDir" ),
         PROJECT( ".DeepPhe/resources/projects", "ProjectsDir", "ProjectDir" ),
         EXAMPLE( "examples", "ExamplesDir", "ExampleDir", "SamplesDir", "SampleDir" );
         private final String _defaultSubDir;
@@ -173,6 +176,7 @@ public class DpheDesktop {
     enum ToolCommandConfig {
         DPHE( "bin/runDeepPheGUI", "StartDphe", "StartDeepPhe", "StartNlp", "StartSummarizer" ),
         ETL( "runDbCreator", "StartDpheVizDbCreator", "StartDpheVisDbCreator", "StartVizDbCreator", "StartVisDbCreator" ),
+        DATA_API( "dphe-data-api", "StartDataApi", "StartDpheDataApi" ),
         VIZ( "start-viz", "StartViz", "StartVis", "StartVizualizer", "StartVisualizer" );
         private final String _defaultCommand;
         private final String[] _configNames;
@@ -188,7 +192,8 @@ public class DpheDesktop {
     enum ToolConfig {
         DPHE( DirConfig.DPHE, ToolCommandConfig.DPHE, "DeepPheGUI.log" ),
         ETL( DirConfig.ETL, ToolCommandConfig.ETL, "DeepPheDbCreator.log" ),
-        VIZ( DirConfig.VIZ, ToolCommandConfig.VIZ, "DeepPheViz.log" );
+        DATA_API( DirConfig.DATA_API, ToolCommandConfig.DATA_API, "viz/DeepPheDataApi.log" ),
+        VIZ( DirConfig.VIZ, ToolCommandConfig.VIZ, "viz/DeepPheViz.log" );
         private final DirConfig _DirConfig;
         private final ToolCommandConfig _toolCommandConfig;
         private final String _logFile;
@@ -202,6 +207,9 @@ public class DpheDesktop {
         }
         String getFullCommand() {
             return getFullDir() + "/" + _toolCommandConfig.getCommand();
+        }
+        String getCommand() {
+            return _toolCommandConfig.getCommand();
         }
         String getLogFile() {
             return _logFile;
