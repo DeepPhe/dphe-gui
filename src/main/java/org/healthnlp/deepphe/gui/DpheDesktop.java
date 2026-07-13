@@ -1,5 +1,6 @@
 package org.healthnlp.deepphe.gui;
 
+import org.apache.ctakes.core.util.external.SystemUtil;
 import org.apache.ctakes.gui.component.DisablerPane;
 import org.apache.log4j.Logger;
 import org.healthnlp.deepphe.util.ParameterHandler;
@@ -235,7 +236,32 @@ public class DpheDesktop {
     }
 
 
+    /**
+     * Put the bundled JRE's {@code bin} directory first on the {@code PATH} of every
+     * child process this app launches. install4j runs the desktop app under its
+     * bundled JRE, so {@code java.home} points straight at it. The helper scripts
+     * ({@code bin/runDeepPheGui.sh}, {@code runDeepPhe.sh}, the {@code .bat}
+     * equivalents) invoke a bare {@code java}, which fails with "command not found"
+     * on machines that have no system Java on the PATH. cTAKES {@code SystemUtil} and
+     * our own runners copy every {@code ctakes.env.*} system property into the child
+     * environment, so registering {@code PATH} here reaches all spawn paths without
+     * touching the scripts.
+     */
+    static private void putBundledJreOnChildPath() {
+        final String javaHome = System.getProperty( "java.home" );
+        if ( javaHome == null || javaHome.isEmpty() ) {
+            return;
+        }
+        final String javaBin = javaHome + File.separator + "bin";
+        final String currentPath = System.getenv( "PATH" );
+        final String newPath = ( currentPath == null || currentPath.isEmpty() )
+                               ? javaBin
+                               : javaBin + File.pathSeparator + currentPath;
+        SystemUtil.addEnvironmentVariables( "PATH", newPath );
+    }
+
     public static void main( final String... args ) {
+        putBundledJreOnChildPath();
         try {
             UIManager.setLookAndFeel( UIManager.getSystemLookAndFeelClassName() );
             UIManager.getDefaults()

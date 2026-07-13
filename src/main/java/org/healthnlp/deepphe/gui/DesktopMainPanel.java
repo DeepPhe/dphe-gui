@@ -499,8 +499,11 @@ public class DesktopMainPanel extends JPanel {
         }
 
         private boolean isPortAvailable( final int port ) {
+            // Match how the Node services bind (SO_REUSEADDR): a just-stopped service
+            // can leave the port in TIME_WAIT, which the services themselves bind over.
+            // Without this the check would falsely report "in use" right after Shutdown.
             try ( ServerSocket socket = new ServerSocket() ) {
-                socket.setReuseAddress( false );
+                socket.setReuseAddress( true );
                 socket.bind( new InetSocketAddress( LOOPBACK_HOST, port ) );
                 return true;
             } catch ( IOException ioE ) {
