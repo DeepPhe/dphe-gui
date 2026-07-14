@@ -89,7 +89,7 @@ const config = {
           src: 'img/logo-dark.svg',
           srcDark: 'img/logo-dark.svg',
           width: 180,
-          height: 36,
+          height: 43,
         },
         links: [
           {
