@@ -5,6 +5,11 @@ input/
 # Java Maven generated
 target/
 
+# Docusaurus generated
+website/node_modules/
+website/.docusaurus/
+website/build/
+
 # Developer environment setup
 /python/
 /resources/

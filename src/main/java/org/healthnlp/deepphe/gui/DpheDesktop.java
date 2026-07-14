@@ -31,7 +31,7 @@ public class DpheDesktop {
     // not under the (possibly read-only) install root. The installer unpacks
     // DeepPhe-examples.zip there and points ExampleProject.txt at the same place.
     static private final String DOCS_DIR = System.getProperty( "user.home" ) + "/DeepPheDocs";
-    static final String HTTPS_DEEPPHE_NLP_WIKI = "https://deepphe.github.io/";
+    static final String HTTPS_DEEPPHE_NLP_WIKI = "https://github.com/DeepPhe/DeepPhe-Release/wiki";
     static final String HTTPS_DEEPPHE_GITHUB_IO = "https://deepphe.github.io/";
     static private final String PROJECT_LIST_PATH = DirConfig.PROJECT.getFullDir() + "/ProjectList.txt";
 
