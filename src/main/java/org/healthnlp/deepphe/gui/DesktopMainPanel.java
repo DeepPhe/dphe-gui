@@ -521,7 +521,7 @@ public class DesktopMainPanel extends JPanel {
             if ( _vizButton == null ) {
                 return;
             }
-            _vizButton.setText( isRunning() ? "Shutdown" : "Startup" );
+            _vizButton.setText( isRunning() ? "Visualizer Shutdown" : "Visualizer Startup" );
             _vizButton.setEnabled( !_transitioning );
         }
     }
