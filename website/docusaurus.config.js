@@ -59,7 +59,7 @@ const config = {
       navbar: {
         title: 'Desktop GUI',
         logo: {
-          alt: 'Deep[Phe]',
+          alt: 'DeepPhe',
           src: 'img/logo.svg',
           srcDark: 'img/logo-dark.svg',
         },
@@ -85,7 +85,7 @@ const config = {
       footer: {
         style: 'dark',
         logo: {
-          alt: 'Deep[Phe]',
+          alt: 'DeepPhe',
           src: 'img/logo-dark.svg',
           srcDark: 'img/logo-dark.svg',
           width: 180,
