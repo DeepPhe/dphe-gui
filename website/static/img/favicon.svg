@@ -4,5 +4,5 @@
   <rect width="32" height="32" rx="7" fill="#040A16"/>
   <rect x="1.5" y="1.5" width="29" height="29" rx="6" fill="#0C1826" stroke="#1E3047" stroke-width="2"/>
   <text x="10.9" y="21.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14.5" font-weight="800" fill="#F4F6F8">D</text>
-  <text x="20.9" y="21.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14.5" font-weight="800" fill="#5FB4BC">P</text>
+  <text x="20.9" y="21.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="14.5" font-weight="800" fill="#F4F6F8">P</text>
 </svg>
